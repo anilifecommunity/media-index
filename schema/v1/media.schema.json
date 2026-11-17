@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/media.schema.json",
+  "title": "Anilife media record v1",
+  "description": "Canonical detail record for one anime title. Unknown values are null, never guessed.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "mediaKey",
+    "kind",
+    "ids",
+    "titles",
+    "format",
+    "status",
+    "episodes",
+    "isAdult",
+    "visibility",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "mediaKey": { "type": "string", "pattern": "^al-[1-9][0-9]*$" },
+    "kind": { "const": "ANIME" },
+    "ids": {
+      "type": "object",
+      "required": ["anilist"],
+      "additionalProperties": false,
+      "properties": {
+        "anilist": { "type": "integer", "minimum": 1 },
+        "mal": { "type": ["integer", "null"], "minimum": 1 },
+        "tmdb": { "type": ["integer", "null"], "minimum": 1 },
+        "kitsu": { "type": ["integer", "null"], "minimum": 1 },
+        "anidb": { "type": ["integer", "null"], "minimum": 1 },
+        "simkl": { "type": ["integer", "null"], "minimum": 1 },
+        "tvdb": { "type": ["integer", "null"], "minimum": 1 },
+        "bangumi": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "titles": {
+      "type": "object",
+      "required": ["english", "romaji", "native", "synonyms"],
+      "additionalProperties": false,
+      "properties": {
+        "english": { "type": ["string", "null"], "minLength": 1 },
+        "romaji": { "type": ["string", "null"], "minLength": 1 },
+        "native": { "type": ["string", "null"], "minLength": 1 },
+        "display": { "type": ["string", "null"], "minLength": 1 },
+        "synonyms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["value", "source"],
+            "additionalProperties": false,
+            "properties": {
+              "value": { "type": "string", "minLength": 1 },
+              "language": { "type": ["string", "null"] },
+              "source": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "synopsis": {
+      "type": ["object", "null"],
+      "required": ["text", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "language": { "type": ["string", "null"] },
+        "source": { "type": "string" },
+        "spoiler": { "type": "boolean", "default": false }
+      }
+    },
+    "format": { "type": ["string", "null"] },
+    "status": { "type": ["string", "null"] },
+    "season": { "type": ["string", "null"] },
+    "seasonYear": { "type": ["integer", "null"] },
+    "episodes": {
+      "type": "object",
+      "required": ["declared", "available"],
+      "additionalProperties": false,
+      "properties": {
+        "declared": { "type": ["integer", "null"], "minimum": 0 },
+        "available": { "type": "boolean" },
+        "numbering": { "const": "position" }
+      }
+    },
+    "durationMinutes": { "type": ["integer", "null"], "minimum": 0 },
+    "genres": { "type": "array", "items": { "type": "string" } },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "rank"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "rank": { "type": ["integer", "null"] },
+          "spoiler": { "type": "boolean" }
+        }
+      }
+    },
+    "score": {
+      "type": ["object", "null"],
+      "required": ["value", "scale", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "number" },
+        "scale": { "type": "integer" },
+        "source": { "type": "string" }
+      }
+    },
+    "popularity": { "type": ["integer", "null"], "minimum": 0 },
+    "isAdult": { "type": ["boolean", "null"] },
+    "visibility": { "enum": ["general", "adult", "unknown-conservative"] },
+    "countryOfOrigin": { "type": ["string", "null"] },
+    "startDate": { "$ref": "#/$defs/partialDate" },
+    "endDate": { "$ref": "#/$defs/partialDate" },
+    "studios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "animation": { "type": "boolean" }
+        }
+      }
+    },
+    "images": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "poster": { "$ref": "#/$defs/image" },
+        "banner": { "$ref": "#/$defs/image" },
+        "logo": { "$ref": "#/$defs/image" }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["relationType", "kind", "ids", "mediaKey", "resolved"],
+        "additionalProperties": false,
+        "properties": {
+          "relationType": { "type": "string" },
+          "kind": { "enum": ["ANIME", "MANGA", "UNKNOWN"] },
+          "ids": {
+            "type": "object",
+            "required": ["anilist"],
+            "additionalProperties": false,
+            "properties": {
+              "anilist": { "type": "integer", "minimum": 1 },
+              "mal": { "type": ["integer", "null"] }
+            }
+          },
+          "mediaKey": { "type": ["string", "null"] },
+          "resolved": { "type": "boolean" },
+          "name": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ids", "mediaKey", "resolved"],
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "type": "object",
+            "required": ["anilist"],
+            "additionalProperties": false,
+            "properties": { "anilist": { "type": "integer", "minimum": 1 } }
+          },
+          "mediaKey": { "type": ["string", "null"] },
+          "resolved": { "type": "boolean" }
+        }
+      }
+    },
+    "series": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^al-[1-9][0-9]*$" }
+    },
+    "bangumi": {
+      "type": ["object", "null"],
+      "required": ["id", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "names": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source", "updatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "fields": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "partialDate": {
+      "type": ["object", "null"],
+      "required": ["year"],
+      "additionalProperties": false,
+      "properties": {
+        "year": { "type": "integer" },
+        "month": { "type": ["integer", "null"], "minimum": 1, "maximum": 12 },
+        "day": { "type": ["integer", "null"], "minimum": 1, "maximum": 31 }
+      }
+    },
+    "image": {
+      "type": "object",
+      "required": ["url", "source", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "pattern": "^https://" },
+        "source": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "color": { "type": ["string", "null"] },
+        "width": { "type": ["integer", "null"] },
+        "height": { "type": ["integer", "null"] },
+        "attribution": { "type": ["string", "null"] },
+        "permission": { "enum": ["reference-only", "licensed"] }
+      }
+    }
+  }
+}

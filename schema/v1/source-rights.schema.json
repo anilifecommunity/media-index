@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/source-rights.schema.json",
+  "title": "Source rights policy",
+  "description": "Machine-readable rights inventory. UNVERIFIED is not permission.",
+  "type": "object",
+  "required": ["reviewedAt", "sources"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "reviewedAt": { "type": "string", "format": "date" },
+    "note": { "type": "string" },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "permitted", "bulkCollection", "fields"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["verified", "unverified", "blocked"] },
+          "permitted": { "type": "boolean" },
+          "bulkCollection": { "type": "boolean" },
+          "fields": { "type": "array", "items": { "type": "string" } },
+          "terms": { "type": "string" },
+          "permissionReference": { "type": ["string", "null"] },
+          "lastUpdated": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

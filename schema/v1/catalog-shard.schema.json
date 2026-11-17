@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/catalog-shard.schema.json",
+  "title": "Anilife catalogue shard v1",
+  "description": "Bounded discovery/filter rows. One shard is a stable hash bucket of mediaKey, so a key never moves between shards.",
+  "type": "object",
+  "required": ["schemaVersion", "shard", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "shard": { "type": "integer", "minimum": 0, "maximum": 63 },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "mediaKey",
+          "kind",
+          "ids",
+          "titles",
+          "format",
+          "status",
+          "isAdult",
+          "visibility",
+          "episodesAvailable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "mediaKey": { "type": "string", "pattern": "^al-[1-9][0-9]*$" },
+          "kind": { "const": "ANIME" },
+          "ids": {
+            "type": "object",
+            "required": ["anilist"],
+            "additionalProperties": false,
+            "properties": {
+              "anilist": { "type": "integer" },
+              "mal": { "type": ["integer", "null"] }
+            }
+          },
+          "titles": {
+            "type": "object",
+            "required": ["english", "romaji", "native"],
+            "additionalProperties": false,
+            "properties": {
+              "english": { "type": ["string", "null"] },
+              "romaji": { "type": ["string", "null"] },
+              "native": { "type": ["string", "null"] },
+              "display": { "type": ["string", "null"] }
+            }
+          },
+          "format": { "type": ["string", "null"] },
+          "status": { "type": ["string", "null"] },
+          "season": { "type": ["string", "null"] },
+          "seasonYear": { "type": ["integer", "null"] },
+          "episodes": { "type": ["integer", "null"] },
+          "episodesAvailable": { "type": "boolean" },
+          "score": { "type": ["integer", "null"] },
+          "popularity": { "type": ["integer", "null"] },
+          "genres": { "type": "array", "items": { "type": "string" } },
+          "isAdult": { "type": ["boolean", "null"] },
+          "visibility": { "enum": ["general", "adult", "unknown-conservative"] },
+          "poster": {
+            "type": ["object", "null"],
+            "required": ["url", "source"],
+            "additionalProperties": false,
+            "properties": {
+              "url": { "type": "string", "pattern": "^https://" },
+              "source": { "type": "string" },
+              "color": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}
