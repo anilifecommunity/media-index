@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install requests jsonschema
+      - run: pip install requests numpy jsonschema
 
       - name: Legacy generator tests
         run: |
