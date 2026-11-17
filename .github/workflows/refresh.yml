@@ -220,6 +220,14 @@ jobs:
             --skip-fresh-days 30 --write
           python scripts/lili_sources.py --repo . --airing --concurrency 4 --write
 
+      # The v1 contract is built from the same emitted tree and committed by this workflow. Release
+      # directories are content-addressed and immutable; manifest.json is the only mutable file.
+      # Retention 2 keeps the current and previous release so a rollback needs no rebuild.
+      - name: Build v1 release
+        run: |
+          python scripts/build_release.py --out . --prune-keep 2
+          python scripts/validate_release.py --root .
+
       # No commit is made unless the tree is internally consistent and freshly generated. A failed
       # or partial upstream walk therefore leaves the previous commit as the published tree.
       - name: Verify metadata before publish
@@ -233,7 +241,7 @@ jobs:
           git config user.name "konoha-refresh"
           # The noreply form, so an automated commit never publishes an address.
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A data
+          git add -A data releases manifest.json
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -259,6 +267,9 @@ jobs:
                 recs/neighbours-v1.tsv.gz; do
               curl -sS "https://purge.jsdelivr.net/gh/$repo@main/data/$path" > /dev/null
             done
+            # The v1 pointer is the only mutable file outside data/. Release directories are
+            # immutable and content-addressed, so their paths never need purging.
+            curl -sS "https://purge.jsdelivr.net/gh/$repo@main/manifest.json" > /dev/null
             # Named here rather than left to the diff below, which cannot reach them: it is capped
             # at 2000 paths and a refresh changes tens of thousands under data/anime/, which sorts
             # first. A schedule file rewritten daily and never purged is a calendar that goes stale

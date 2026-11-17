@@ -54,6 +54,7 @@ def source_status(policy: dict, updated_at: str) -> list[dict]:
             "name": item["name"],
             "status": "verified" if item.get("status") == "verified" else item.get("status", "unverified"),
             "permitted": bool(item.get("permitted")),
+            "permissionReference": item.get("permissionReference"),
             "lastUpdated": updated_at,
         }
         for item in policy.get("sources", [])
