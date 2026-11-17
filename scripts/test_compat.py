@@ -105,10 +105,15 @@ def main() -> int:
     check_true("sampled episode lists", episodes_checked > 0)
     check_true("sampled MAL mappings", mappings_checked > 0)
 
-    for medias in id_map.values():
+    catalogue_ids = {str(row.get("id")) for row in index}
+    for anilist_id, entry in id_map.items():
+        if anilist_id not in catalogue_ids:
+            # Bangumi and Fribb may add alias-only rows for ids outside the published catalogue.
+            # The app ignores them; the full legacy shape is only promised for catalogue ids.
+            continue
         for key in ("tmdb", "mal", "kitsu", "anidb", "simkl", "tvdb", "tvdb_season", "confidence", "updated_at"):
-            if key not in medias:
-                FAILURES.append(f"id-map entry missing {key}")
+            if key not in entry:
+                FAILURES.append(f"id-map entry {anilist_id} missing {key}")
                 break
 
     schedule = sorted((DATA / "schedule").glob("*.json"))
