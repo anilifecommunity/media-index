@@ -163,7 +163,7 @@ the content hash and the pointer. Clients should implement the same checks, at m
 files they consume.
 
 Payload budgets are enforced by the catalogue design, not by trust. Measured on the 2026-11-17
-staging release (20,900 titles, 7,197 episode lists, 159,624 episodes):
+release (20,925 titles, 7,202 episode lists, 159,808 episodes):
 
 | File | Count | Largest | Average |
 | --- | --- | --- | --- |
@@ -175,11 +175,9 @@ staging release (20,900 titles, 7,197 episode lists, 159,624 episodes):
 | release manifest | 1 | 104 KB | 104 KB |
 | identity ledger | 1 | 1.5 MB | 1.5 MB |
 
-The whole release is 28,922 files / ~131 MiB (v1.0). The 2026-11-17 v1.1 expansion adds
-`catalog/browse.json` (~11 MB), relation/recommendation cards and 1,760 auxiliary files; expect
-roughly 30,700 files / ~220 MiB without the optional raw `anilist` record. Never fetch it on
-startup. Fetch the pointer, the release manifest, the bucket manifest for the record you need, then
-the record. Cache releases by `releaseId`; they never change.
+The whole release is 30,715 files / ~211 MiB. Never fetch it on startup. Fetch the pointer, the
+release manifest, the bucket manifest for the record you need, then the record. Cache releases by
+`releaseId`; they never change.
 
 A committed, self-consistent sample is in [`fixtures/v1/`](../fixtures/v1/README.md); CI validates
 it with the same command.

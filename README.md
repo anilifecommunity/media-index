@@ -5,7 +5,7 @@ from [AniList](https://anilist.co) and [TMDB](https://www.themoviedb.org), serve
 CDN with no server-side logic.
 
 Rebuilt daily by a GitHub Action under the owner-approved source scope (see
-[`docs/SOURCE-POLICY.md`](docs/SOURCE-POLICY.md)). 20,900 titles and 159,624 episode records.
+[`docs/SOURCE-POLICY.md`](docs/SOURCE-POLICY.md)). 20,925 titles and 159,808 episode records.
 
 ## Data access
 
