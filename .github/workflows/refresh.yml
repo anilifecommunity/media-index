@@ -225,8 +225,9 @@ jobs:
       # Retention 2 keeps the current and previous release so a rollback needs no rebuild.
       - name: Build v1 release
         run: |
-          python scripts/build_release.py --out . --prune-keep 2
+          python scripts/build_release.py --out . --prune-keep 2 --publish
           python scripts/validate_release.py --root .
+          test -f manifest.json
 
       # No commit is made unless the tree is internally consistent and freshly generated. A failed
       # or partial upstream walk therefore leaves the previous commit as the published tree.
