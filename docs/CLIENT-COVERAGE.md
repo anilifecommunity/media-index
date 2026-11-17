@@ -8,6 +8,11 @@ Audited 2026-11-17 against the actual client sources:
 Every claim below points at the file that makes the request. This is a read-only audit; no client
 code was changed.
 
+Per-repo migration packs (gitignored, not committed):
+
+- `C:\Users\User\Documents\ChatGPT\anilili-android-and-tv\.private\media-index-v1-handoff-2026-11-17.zip`
+- `C:\Users\User\Documents\OpenCode\AnilifeWeb\web\.private\media-index-v1-handoff-2026-11-17.zip`
+
 ## Android
 
 | Surface | Source | Fields / behaviour | Fallback |
