@@ -19,7 +19,7 @@ Pointer shape (`schema/v1/pointer.schema.json`):
 
 ```json
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "contract": "anilife.media",
   "releaseId": "rel-0123456789abcdef",
   "releaseManifest": "releases/rel-0123456789abcdef/manifest.json",

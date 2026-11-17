@@ -7,7 +7,7 @@
   "required": ["schemaVersion", "bucket", "files"],
   "additionalProperties": false,
   "properties": {
-    "schemaVersion": { "const": "1.0.0" },
+    "schemaVersion": { "const": "1.1.0" },
     "bucket": { "type": "string", "pattern": "^[0-9a-f]{2}$" },
     "files": {
       "type": "array",

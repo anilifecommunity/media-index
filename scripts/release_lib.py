@@ -14,7 +14,7 @@ import re
 import unicodedata
 from typing import Any, Iterable
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 CONTRACT = "anilife.media"
 CATALOG_SHARDS = 64
 BUCKETS = 256
