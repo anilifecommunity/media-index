@@ -63,7 +63,7 @@ AniList-only schedule, and no related manga for a first-time browser.
 | Home rows | `catalog/home.json` | added (snapshot ranks) |
 | Browse rows | `catalog/browse.json` (compact, all titles) | added |
 | Search | `search/universal/*.json` | present |
-| Detail | `media/{bucket}/{key}.json` (normalized + raw `anilist`, `seriesIds`, `trailer`, `nextAiringEpisode`, `meanScore`, `favourites`) | expanded |
+| Detail | `media/{bucket}/{key}.json` (normalized, `seriesIds`, relation/recommendation cards; raw `anilist` optional) | expanded |
 | Relation cards | `media...relations[].node` (title, poster, format, country, description, adult, episodes) | expanded |
 | Recommendation cards | `media...recommendations[].card` | expanded |
 | Episodes | `episodes/{bucket}/{key}.json` | present |

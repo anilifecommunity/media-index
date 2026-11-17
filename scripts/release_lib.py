@@ -164,6 +164,7 @@ def build_media_record(
     ids: dict,
     episodes_available: bool,
     known_anime: set[int],
+    include_raw: bool = False,
 ) -> dict:
     titles = detail.get("titles") or {}
     anilist = detail.get("anilist") or {}
@@ -325,7 +326,7 @@ def build_media_record(
         "recommendations": recommendations,
         "series": series,
         "seriesIds": series_ids,
-        "anilist": anilist or None,
+        "anilist": (anilist or None) if include_raw else None,
         "trailer": anilist.get("trailer"),
         "nextAiringEpisode": anilist.get("nextAiringEpisode"),
         "meanScore": anilist.get("meanScore"),

@@ -250,7 +250,7 @@ def test_build(root: pathlib.Path, data: pathlib.Path) -> dict:
     check("image attribution", media["images"]["poster"]["attribution"], "anilist")
     check("series keys", media["series"], ["al-1", "al-3"])
     check("series ids", media["seriesIds"], [1, 3])
-    check("raw anilist record", media["anilist"]["id"], 1)
+    check("raw omitted by default", media["anilist"], None)
     check("trailer absent", media["trailer"], None)
     check("relation node title", media["relations"][0]["node"]["title"]["romaji"], "Cowboy Bebop")
 

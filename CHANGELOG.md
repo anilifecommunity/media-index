@@ -6,8 +6,9 @@
 
 - `catalog/home.json` (spotlight/trending/popular/topRated/season/newest/upcoming/movies) and
   `catalog/browse.json` (all titles, compact) so a cold client has a home and searchable catalogue.
-- Full detail parity: raw `anilist` record, `seriesIds`, relation `node` cards, recommendation
-  `card` records, `trailer`, `nextAiringEpisode`, `meanScore`, `favourites`.
+- Full detail parity: normalized fields, `seriesIds`, relation `node` cards, recommendation `card`
+  records, `trailer`, `nextAiringEpisode`, `meanScore`, `favourites` (raw `anilist` optional via
+  `--include-raw`).
 - Auxiliary surfaces in the release: `schedule/`, `dub/`, `filler/`, `backdrops.json`,
   `airing.json`, `facets.json`, `recommendations/`, `skip/`, `sources/lili/`, each hashed in
   `manifest.aux.files`.

@@ -78,9 +78,10 @@ the pointer and changed paths after each commit, but a client must still tolerat
 
 `manifest.home` and `manifest.browse` pin the two compact catalogue files directly. Every
 auxiliary file is listed with `sha256`/`bytes` in `manifest.aux.files`; verify it like any other
-file. A `media` record carries the raw AniList-shaped `anilist` object and `seriesIds` for clients
-migrating from the legacy detail, plus `trailer`, `nextAiringEpisode`, `meanScore`, `favourites`,
-relation `node` cards and recommendation `card` records.
+file. A `media` record carries normalized fields, `seriesIds`, relation `node` cards and
+recommendation `card` records, plus `trailer`, `nextAiringEpisode`, `meanScore` and `favourites`.
+The raw AniList-shaped `anilist` object is optional (`--include-raw`) and is **not** in the default
+production release.
 
 Relations are **inline** in the media record rather than a separate endpoint. At this catalogue
 size they are small and every consumer that needs a relation already fetched the record; a second

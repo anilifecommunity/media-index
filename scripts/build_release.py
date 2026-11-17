@@ -76,6 +76,7 @@ def build(
     *,
     limit: int = 0,
     generated_at: str | None = None,
+    include_raw: bool = False,
 ) -> dict:
     sync = _load_json(data_dir / "sync-status.json")
     index = _load_json(data_dir / "index.json")
@@ -101,6 +102,7 @@ def build(
             id_map=id_map,
             updated_at=updated_at,
             generated_at=generated_at,
+            include_raw=include_raw,
         )
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
@@ -118,6 +120,7 @@ def _build_into(
     id_map: dict,
     updated_at: str,
     generated_at: str,
+    include_raw: bool,
 ) -> dict:
     content_files: list[dict] = []
     aux_files: list[dict] = []
@@ -178,6 +181,7 @@ def _build_into(
             ids=ids,
             episodes_available=bool(episode_rows),
             known_anime=known_anime,
+            include_raw=include_raw,
         )
 
         bucket = lib.bucket_of(key)
@@ -564,6 +568,11 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--limit", type=int, default=0, help="build only the first N catalogue rows")
     parser.add_argument("--generated-at", help="fixed timestamp for reproducible fixtures")
     parser.add_argument("--published-at", help="fixed pointer timestamp for reproducible fixtures")
+    parser.add_argument(
+        "--include-raw",
+        action="store_true",
+        help="include the full raw AniList-shaped record in each media file (large)",
+    )
     args = parser.parse_args(argv)
 
     policy = _load_json(args.policy)
@@ -583,6 +592,7 @@ def main(argv: list[str]) -> int:
         policy,
         limit=args.limit,
         generated_at=args.generated_at,
+        include_raw=args.include_raw,
     )
     if args.publish:
         pointer = write_pointer(args.out, summary, published_at=args.published_at)
