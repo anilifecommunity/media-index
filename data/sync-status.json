@@ -1,1 +1,1 @@
-{"source":"anilist+tmdb","generator":"scripts/konoha_build.py","last_updated":"2026-11-01T12:06:49.222486Z"}
+{"source":"anilist+tmdb","generator":"scripts/konoha_build.py","last_updated":"2026-11-17T12:03:38.085537Z","schema":2,"sources":{"anilist":{"last_updated":"2026-11-17T12:02:47Z"},"tmdb":{"last_updated":"2026-11-17T12:03:35Z"}},"counts":{"titles":20925,"episodes":18934,"mappings":20925}}
