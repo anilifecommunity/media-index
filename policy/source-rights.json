@@ -1,49 +1,54 @@
 {
   "$schema": "../schema/v1/source-rights.schema.json",
   "reviewedAt": "2026-11-17",
-  "note": "Status is UNVERIFIED until the project owner records a permission reference. UNVERIFIED never counts as permission.",
+  "note": "Owner attestation for the existing daily scope, recorded 2026-11-17 via PR #1. This is not a provider licence: it approves the current fields and cadence only. No new bulk collection, artwork mirroring, MAL user data, manga catalogue, characters or trailers.",
   "sources": [
     {
       "name": "anilist",
-      "status": "unverified",
-      "permitted": false,
+      "status": "verified",
+      "permitted": true,
       "bulkCollection": false,
+      "permissionReference": "Owner approval, PR #1, 2026-11-17",
       "fields": ["titles", "ids", "synopsis", "format", "status", "dates", "genres", "tags", "scores", "popularity", "studios", "relations", "recommendations", "artwork-references"],
       "terms": "https://docs.anilist.co/guide/terms-of-use",
       "lastUpdated": "2026-11-01T12:06:49.222486Z"
     },
     {
       "name": "tmdb",
-      "status": "unverified",
-      "permitted": false,
+      "status": "verified",
+      "permitted": true,
       "bulkCollection": false,
+      "permissionReference": "Owner approval, PR #1, 2026-11-17",
       "fields": ["episode-titles", "episode-overviews", "episode-air-dates", "episode-stills-references", "logos-references", "backdrops-references"],
       "terms": "https://developer.themoviedb.org/docs/faq",
       "lastUpdated": "2026-11-01T12:06:49.222486Z"
     },
     {
       "name": "anizip",
-      "status": "unverified",
-      "permitted": false,
+      "status": "verified",
+      "permitted": true,
       "bulkCollection": false,
+      "permissionReference": "Owner approval, PR #1, 2026-11-17",
       "fields": ["episode-ratings", "logos-references", "backdrops-references"],
       "terms": "https://api.ani.zip/",
       "lastUpdated": "2026-11-01T12:06:49.222486Z"
     },
     {
       "name": "bangumi",
-      "status": "unverified",
-      "permitted": false,
+      "status": "verified",
+      "permitted": true,
       "bulkCollection": false,
+      "permissionReference": "Owner approval, PR #1, 2026-11-17",
       "fields": ["aliases", "chinese-titles", "subject-ids"],
       "terms": "https://bangumi.github.io/api/",
       "lastUpdated": "2026-11-01T12:06:49.222486Z"
     },
     {
       "name": "fribb",
-      "status": "unverified",
-      "permitted": false,
+      "status": "verified",
+      "permitted": true,
       "bulkCollection": false,
+      "permissionReference": "Owner approval, PR #1, 2026-11-17",
       "fields": ["cross-provider-ids"],
       "terms": "https://github.com/Fribb/anime-lists",
       "lastUpdated": "2026-11-01T12:06:49.222486Z"

@@ -11,10 +11,11 @@ Publication order and failure containment:
 policy gate
   → checkout
   → generator tests
-  → AniList walk → TMDB episodes → emit → recommendations → schedule → Bangumi → lili
+  → emit → recommendations → schedule → Bangumi → lili
+  → build v1 release + full validation
   → audit_dataset --strict + publish_health
-  → commit only if all of the above succeeded
-  → purge jsDelivr paths
+  → commit only if all of the above succeeded (data, releases, manifest.json)
+  → purge jsDelivr paths and the v1 pointer
 ```
 
 A failure at any step before **Commit** leaves the previous commit as the published tree. The
@@ -23,9 +24,10 @@ emitted tree, so a failed or incomplete build cannot overwrite the last known go
 
 ## Policy gate
 
-The `policy` job checks the repository variable `SOURCE_RIGHTS_APPROVED`. When it is absent the
-`refresh` job is skipped, the `blocked` job records the reason in the run summary, and the data
-stays as-is. See `docs/SOURCE-POLICY.md` for what must be recorded before flipping it.
+The `policy` job checks the repository variable `SOURCE_RIGHTS_APPROVED`. Both the policy file and
+the variable were approved on 2026-11-17 for the existing scope. When either is unset the `refresh`
+job is skipped, the `blocked` job records the reason in the run summary, and the data stays as-is.
+See `docs/SOURCE-POLICY.md` for what a new approval must record.
 
 ## Manual run
 
@@ -68,7 +70,20 @@ restored from a snapshot after its remote was lost). Push a commit that touches
 
 ## Release build and rollback
 
-The legacy tree is always generated first. The v1 release is built from it:
+The workflow builds the v1 release from the freshly emitted legacy tree and commits it with the
+data:
+
+```bash
+python scripts/build_release.py --out . --prune-keep 2
+python scripts/validate_release.py --root .
+```
+
+`manifest.json` is the only mutable file; `releases/rel-<content-hash>/` is immutable. A release
+whose content hash is unchanged is reused, so an idle day adds no files and no new directory.
+Retention 2 keeps the current and previous release; older directories are removed from the working
+tree (their Git objects may remain in history).
+
+Manual staging, safe and gitignored:
 
 ```bash
 python scripts/build_release.py --out build/v1 --publish --allow-unverified-sources
@@ -77,26 +92,16 @@ python scripts/rollback_release.py --root build/v1 --list
 python scripts/rollback_release.py --root build/v1 --release previous
 ```
 
-`--publish` writes `build/v1/manifest.json` atomically. In a real publication the output root is
-the repository root (or a dedicated data branch); the pointer is the only mutable file. Rollback
-fully verifies the target release before writing the pointer, so a corrupt/partial release cannot
-become current.
+`--publish` writes the pointer atomically. Rollback fully verifies the target release before
+writing the pointer, so a corrupt or partial release cannot become current.
 
-Retention defaults to two releases (`--prune-keep 2`), which preserves the previous release for
-rollback. A release whose content hash is unchanged is reused, so an idle day adds no files and no
-new release directory.
+### Repository size
 
-### Cost guardrail
-
-The current `data/` tree is 50,016 blobs / ~196 MiB. The measured v1 staging release is 28,922
-files / ~131 MiB (content hash `sha256:19bdc75e…`, 20,900 media, 7,197 episode lists). Committing
-every release to `main` would grow the working tree without bound. Before enabling real
-publication:
-
-1. measure cold refresh time, peak memory/disk and release bytes;
-2. measure daily churn (how many release files actually change);
-3. if churn or checkout time exceeds the repository budget, publish the release tree to Cloudflare
-   R2 (or a dedicated branch with retention) and keep only the pointer in `main`.
+Measured 2026-11-17: 28,922 files / ~131 MiB per release (20,900 media, 7,197 episode lists). With
+retention 2 the working tree is legacy data plus two releases (~108k files). Git deduplicates
+unchanged blobs, so daily growth is changed files plus tree entries; monitor `git count-objects
+-vH` and checkout time. If the repository budget is exceeded, move `releases/` to Cloudflare R2 or
+an orphan data branch and keep only `manifest.json` in `main`.
 
 Do not silently move 50k per-title files between layouts without that measurement.
 
@@ -115,10 +120,10 @@ Do not silently move 50k per-title files between layouts without that measuremen
 
 | Gap | Reason / next step |
 | --- | --- |
-| Real publication is blocked | all sources are `unverified`; owner must record permission (P0 policy gate) |
-| No per-provider 429/failure counters in the committed status | generator prints and backs off, but does not persist counters; add a run report if publication resumes |
+| Source scope is fixed | the owner approved the existing scope on 2026-11-17; new fields, sources or cadence need a new review |
+| No per-provider 429/failure counters in the committed status | generator prints and backs off, but does not persist counters; add a run report if needed |
 | Manga catalogue is relation-only | the published tree contains manga nodes, not full manga records |
-| Character/staff, trailers, localized synopsis | not licensed/verified; out of scope until rights are recorded |
+| Character/staff, trailers, localized synopsis | no verified rights; out of scope until a new approval |
 | Artwork is reference-only | mirroring requires affirmative rights; no binary mirror is built |
 | Episode raw source ordinal | not present in the published tree; positions are consumer-visible numbering only |
-| GitHub large-tree budget unmeasured at release scale | see the cost guardrail above |
+| Repository growth from in-repo releases | measured 28,922 files / ~131 MiB per release with retention 2; monitor and move to R2 or an orphan data branch if needed |

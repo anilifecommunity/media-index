@@ -6,10 +6,14 @@ fields that are still `null` or marked blocked in `docs/SOURCE-POLICY.md`.
 
 ## 1. Discovery and integrity
 
+Live (once the refresh workflow has published its first v1 release):
+
 ```
-GET /manifest.json                     # mutable pointer, tiny
-GET /releases/{releaseId}/manifest.json # immutable release description
+https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/manifest.json
+https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/releases/{releaseId}/manifest.json
 ```
+
+The same layout exists in `fixtures/v1/` for offline integration tests.
 
 Pointer shape (`schema/v1/pointer.schema.json`):
 
@@ -99,8 +103,10 @@ endpoint list in the handoff.
 - Images are references with `source`, `kind`, `permission: "reference-only"` and attribution.
   There is no guaranteed offline mirror. Supply a local placeholder when a host fails; never imply
   the URL is owned by Anilife.
-- `provenance.updatedAt` is the generation time of the record's source snapshot, not a promise of
-  live data. Dynamic rankings are snapshot ranks.
+- `provenance.source` names where a record came from. The **release** carries the snapshot time in
+  `generatedAt` and `sources[].lastUpdated`; per-record `updatedAt` is omitted because the current
+  sources do not expose a reliable per-record timestamp, and inventing one would be dishonest.
+  Dynamic rankings are snapshot ranks.
 
 ## 5. Search
 
@@ -181,8 +187,8 @@ it with the same command.
   invented.
 - Episode raw source ordinals and season numbers are not exposed.
 - No binary artwork mirror, no offline guarantee for third-party image hosts.
-- Source rights are unverified, so no real publication has been approved. A staging release built
-  with `--allow-unverified-sources` demonstrates the mechanics only.
+- The existing source scope is owner-approved (see `docs/SOURCE-POLICY.md`); expansion is blocked.
+  `fixtures/v1/` is a truncated sample, not a production release.
 
 ## 10. Required attribution
 

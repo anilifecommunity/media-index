@@ -162,7 +162,6 @@ def build_media_record(
     index_row: dict,
     *,
     ids: dict,
-    updated_at: str,
     episodes_available: bool,
     known_anime: set[int],
 ) -> dict:
@@ -314,9 +313,7 @@ def build_media_record(
         "bangumi": bangumi_record,
         "provenance": {
             "source": "anilist+tmdb",
-            "updatedAt": updated_at,
         },
-        "updatedAt": updated_at,
     }
     return record
 
@@ -369,7 +366,6 @@ def build_episode_record(
     media_key_value: str,
     rows: list[dict],
     *,
-    updated_at: str,
     match_confidence: str | None,
 ) -> dict:
     episodes = []
@@ -409,7 +405,6 @@ def build_episode_record(
         "episodes": episodes,
         "provenance": {
             "source": "tmdb+anizip",
-            "updatedAt": updated_at,
             "match": match_confidence,
         },
     }

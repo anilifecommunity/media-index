@@ -40,7 +40,7 @@
     },
     "provenance": {
       "type": "object",
-      "required": ["source", "updatedAt"],
+      "required": ["source"],
       "additionalProperties": false,
       "properties": {
         "source": { "type": "string" },

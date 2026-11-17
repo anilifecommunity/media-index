@@ -4,7 +4,7 @@ Static anime metadata — title details, episode lists, and cross-database id ma
 from [AniList](https://anilist.co) and [TMDB](https://www.themoviedb.org), served over the jsDelivr
 CDN with no server-side logic.
 
-Rebuilt by a GitHub Action (currently gated on source-rights approval; see
+Rebuilt daily by a GitHub Action under the owner-approved source scope (see
 [`docs/SOURCE-POLICY.md`](docs/SOURCE-POLICY.md)). 20,900 titles and 159,624 episode records.
 
 ## Data access
@@ -65,6 +65,10 @@ consumer breaks while the apps migrate:
 reassigned, and the alias ledger (`releases/{releaseId}/identity/ledger.json`) is the authority for
 any future non-AniList key. A release id is `rel-<first 16 hex of the content hash>`, so an unchanged
 catalogue reuses the same release instead of rewriting files.
+
+The refresh workflow builds this tree with the data and commits `releases/` plus `manifest.json`.
+Only the pointer is mutable; release directories are immutable and safe to cache forever. The
+previous release is retained for rollback.
 
 Build and verify a staging release (safe; does not publish):
 

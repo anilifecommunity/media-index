@@ -1,5 +1,24 @@
 # Changelog
 
+## v1 publication wiring - 2026-11-17
+
+### Added
+
+- The refresh workflow now builds the v1 release from the freshly emitted tree and commits
+  `releases/rel-<content-hash>/` plus the atomic `manifest.json` alongside `data/`. Retention is
+  two releases; only the pointer is purged on jsDelivr.
+- `permissionReference` is recorded in the release manifest's source status.
+- Freshly emitted records no longer carry a volatile per-record build timestamp. `provenance.source`
+  stays; the release manifest carries `generatedAt` and per-source `lastUpdated`. This keeps an
+  unchanged catalogue byte-identical so the content-addressed release is reused.
+
+### Changed
+
+- The project owner approved the existing AniList/TMDB/AniZip/Bangumi/Fribb fields and cadence on
+  2026-11-17 (PR #1). `policy/source-rights.json` is `verified`/`permitted` for that scope and the
+  repository variable `SOURCE_RIGHTS_APPROVED=true` is set. Expansion, artwork mirroring, MAL user
+  data, manga catalogue, characters and trailers remain blocked.
+
 ## v1 contract - staging, 2026-11-17
 
 No legacy `/data/` path changes. Existing Android/Web builds keep working.

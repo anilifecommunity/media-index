@@ -54,6 +54,7 @@ def source_status(policy: dict, updated_at: str) -> list[dict]:
             "name": item["name"],
             "status": "verified" if item.get("status") == "verified" else item.get("status", "unverified"),
             "permitted": bool(item.get("permitted")),
+            "permissionReference": item.get("permissionReference"),
             "lastUpdated": updated_at,
         }
         for item in policy.get("sources", [])
@@ -159,7 +160,6 @@ def _build_into(
             detail,
             row,
             ids=ids,
-            updated_at=updated_at,
             episodes_available=bool(episode_rows),
             known_anime=known_anime,
         )
@@ -178,7 +178,6 @@ def _build_into(
             episode_record = lib.build_episode_record(
                 key,
                 episode_rows,
-                updated_at=updated_at,
                 match_confidence=ids.get("confidence"),
             )
             episode_path = staging / "episodes" / bucket / f"{key}.json"

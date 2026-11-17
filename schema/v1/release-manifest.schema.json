@@ -47,6 +47,7 @@
           "name": { "type": "string" },
           "status": { "enum": ["verified", "unverified", "degraded", "blocked"] },
           "permitted": { "type": "boolean" },
+          "permissionReference": { "type": ["string", "null"] },
           "lastUpdated": { "type": ["string", "null"] }
         }
       }
