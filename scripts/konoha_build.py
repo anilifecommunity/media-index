@@ -2145,6 +2145,10 @@ def cmd_emit(args: argparse.Namespace) -> int:
                 # matching writes nothing, the previous run's episodes.json stays on the CDN, and
                 # the wrong episode list outlives the fix that was supposed to remove it.
                 episodes_path.unlink()
+        elif episodes_path.exists():
+            # The daily TMDB pass is airing-only, so most finished titles have no cached answer
+            # this run. Their previously published list stays on disk and must still be counted.
+            episode_count += len(json.loads(episodes_path.read_text(encoding="utf-8")))
 
         previous = carried.get(str(anilist_id), {})
         cross = fribb.get(anilist_id)

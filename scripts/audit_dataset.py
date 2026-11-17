@@ -257,7 +257,13 @@ def main(argv: list[str]) -> int:
 
     if args.strict:
         problems = report["problems"]
-        if problems["duplicate_index_ids"] or problems["detail_missing"] or problems["mal_mapping_broken"]:
+        counts = report["counts"]
+        if (
+            problems["duplicate_index_ids"]
+            or problems["detail_missing"]
+            or problems["mal_mapping_broken"]
+            or counts["stats_episodes"] != counts["episode_rows"]
+        ):
             return 1
     return 0
 
