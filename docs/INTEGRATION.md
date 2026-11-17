@@ -19,7 +19,7 @@ Pointer shape (`schema/v1/pointer.schema.json`):
 
 ```json
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "contract": "anilife.media",
   "releaseId": "rel-0123456789abcdef",
   "releaseManifest": "releases/rel-0123456789abcdef/manifest.json",
@@ -60,10 +60,28 @@ the pointer and changed paths after each commit, but a client must still tolerat
 | `releases/{id}/identity/ledger.json` | alias ledger: `mediaKey`, `kind`, `ids` |
 | `releases/{id}/manifests/media/{bucket}.json` | per-file `sha256`/`bytes` for media records |
 | `releases/{id}/manifests/episodes/{bucket}.json` | per-file `sha256`/`bytes` for episode records |
+| `releases/{id}/catalog/home.json` | precomputed spotlight/trending/popular/topRated/season/newest/upcoming/movies snapshot rows |
+| `releases/{id}/catalog/browse.json` | every catalogue row, compact, sorted for stable client filtering |
+| `releases/{id}/schedule/{YYYY-MM}.json` | airing months, padded a week either side |
+| `releases/{id}/dub/{index,episodes}.json` | dubbed ids and latest dubbed episode |
+| `releases/{id}/filler/index.json` | filler episode numbers |
+| `releases/{id}/backdrops.json` | landscape art by AniList id |
+| `releases/{id}/airing.json` | titles with a scheduled next episode |
+| `releases/{id}/facets.json` | genres, years, formats, statuses |
+| `releases/{id}/recommendations/neighbours-v1.tsv.gz` | recommendation graph |
+| `releases/{id}/skip/{shard}/{id}.json` | AniSkip candidates per title |
+| `releases/{id}/sources/lili/{shard}/{id}.json` | provider stream URLs (pointers, not metadata) |
 
 `bucket` is the first two hex characters of `sha256(mediaKey)`. `shard` for ids is
 `floor(providerId / 1000)`, preserving the legacy sharding convention. Catalogue shards are
 `sha256(mediaKey)[2:10] % 64`. A key never moves between shards.
+
+`manifest.home` and `manifest.browse` pin the two compact catalogue files directly. Every
+auxiliary file is listed with `sha256`/`bytes` in `manifest.aux.files`; verify it like any other
+file. A `media` record carries normalized fields, `seriesIds`, relation `node` cards and
+recommendation `card` records, plus `trailer`, `nextAiringEpisode`, `meanScore` and `favourites`.
+The raw AniList-shaped `anilist` object is optional (`--include-raw`) and is **not** in the default
+production release.
 
 Relations are **inline** in the media record rather than a separate endpoint. At this catalogue
 size they are small and every consumer that needs a relation already fetched the record; a second
@@ -157,9 +175,11 @@ staging release (20,900 titles, 7,197 episode lists, 159,624 episodes):
 | release manifest | 1 | 104 KB | 104 KB |
 | identity ledger | 1 | 1.5 MB | 1.5 MB |
 
-The whole release is 28,922 files / ~131 MiB. Never fetch it on startup. Fetch the pointer, the
-release manifest, the bucket manifest for the record you need, then the record. Cache releases by
-`releaseId`; they never change.
+The whole release is 28,922 files / ~131 MiB (v1.0). The 2026-11-17 v1.1 expansion adds
+`catalog/browse.json` (~11 MB), relation/recommendation cards and 1,760 auxiliary files; expect
+roughly 30,700 files / ~220 MiB without the optional raw `anilist` record. Never fetch it on
+startup. Fetch the pointer, the release manifest, the bucket manifest for the record you need, then
+the record. Cache releases by `releaseId`; they never change.
 
 A committed, self-consistent sample is in [`fixtures/v1/`](../fixtures/v1/README.md); CI validates
 it with the same command.
@@ -179,8 +199,11 @@ it with the same command.
 
 ## 9. Known omissions at this release
 
-- No first-class manga catalogue, characters/staff, trailers or localized synopses beyond the
-  Bangumi aliases present in anime detail.
+- No first-class manga catalogue, characters/staff or localized synopses beyond the Bangumi
+  aliases present in anime detail. Trailers are carried as AniList references.
+- Account login, watchlist mutations and progress sync are **not** mirrored. Keep local state and
+  degrade explicitly when AniList is unreachable.
+- Profile avatars are not mirrored; keep a bundled default set or persist the last successful list.
 - TMDB and TVDB ids in v1 identify the series, not a season. Per-season TVDB numbering remains in
   the legacy `data/id-map.json` (`tvdb_season`) until it is added to a v1 minor version.
 - Synonyms come only from source-stated AniList/Bangumi names; no translation or romanisation is

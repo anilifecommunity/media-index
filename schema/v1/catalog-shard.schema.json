@@ -7,7 +7,7 @@
   "required": ["schemaVersion", "shard", "rows"],
   "additionalProperties": false,
   "properties": {
-    "schemaVersion": { "const": "1.0.0" },
+    "schemaVersion": { "const": "1.1.0" },
     "shard": { "type": "integer", "minimum": 0, "maximum": 63 },
     "rows": {
       "type": "array",

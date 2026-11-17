@@ -249,6 +249,10 @@ def test_build(root: pathlib.Path, data: pathlib.Path) -> dict:
     check("image permission", media["images"]["poster"]["permission"], "reference-only")
     check("image attribution", media["images"]["poster"]["attribution"], "anilist")
     check("series keys", media["series"], ["al-1", "al-3"])
+    check("series ids", media["seriesIds"], [1, 3])
+    check("raw omitted by default", media["anilist"], None)
+    check("trailer absent", media["trailer"], None)
+    check("relation node title", media["relations"][0]["node"]["title"]["romaji"], "Cowboy Bebop")
 
     release_manifest = json.loads((release_dir / "manifest.json").read_text("utf-8"))
     check(
@@ -279,6 +283,8 @@ def test_build(root: pathlib.Path, data: pathlib.Path) -> dict:
 
     catalog = {}
     for path in (release_dir / "catalog").glob("*.json"):
+        if path.name in ("home.json", "browse.json"):
+            continue
         payload = json.loads(path.read_text("utf-8"))
         for row in payload["rows"]:
             catalog[row["mediaKey"]] = row
@@ -286,6 +292,13 @@ def test_build(root: pathlib.Path, data: pathlib.Path) -> dict:
     check("episodesAvailable false", catalog["al-2"]["episodesAvailable"], False)
     check("catalog visibility", catalog["al-2"]["visibility"], "unknown-conservative")
     check("catalog poster source", catalog["al-1"]["poster"]["source"], "anilist")
+
+    home = json.loads((release_dir / "catalog" / "home.json").read_text("utf-8"))
+    check("home row count", len(home["rows"]["popular"]), 3)
+    check("home spotlight capped", len(home["rows"]["spotlight"]), 3)
+    browse = json.loads((release_dir / "catalog" / "browse.json").read_text("utf-8"))
+    check("browse rows", len(browse["rows"]), 3)
+    check("browse sorted by popularity", browse["rows"][0]["mediaKey"], "al-1")
 
     search = {}
     for path in (release_dir / "search" / "universal").glob("*.json"):
@@ -403,6 +416,9 @@ def test_schema_files_exist() -> None:
         "bucket-manifest.schema.json",
         "pointer.schema.json",
         "source-rights.schema.json",
+        "compact-row.schema.json",
+        "home.schema.json",
+        "browse.schema.json",
     ]
     schema_dir = pathlib.Path(__file__).resolve().parent.parent / "schema" / "v1"
     for name in expected:

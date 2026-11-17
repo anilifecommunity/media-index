@@ -1,5 +1,20 @@
 # Changelog
 
+## v1 full client parity - 2026-11-17
+
+### Added
+
+- `catalog/home.json` (spotlight/trending/popular/topRated/season/newest/upcoming/movies) and
+  `catalog/browse.json` (all titles, compact) so a cold client has a home and searchable catalogue.
+- Full detail parity: normalized fields, `seriesIds`, relation `node` cards, recommendation `card`
+  records, `trailer`, `nextAiringEpisode`, `meanScore`, `favourites` (raw `anilist` optional via
+  `--include-raw`).
+- Auxiliary surfaces in the release: `schedule/`, `dub/`, `filler/`, `backdrops.json`,
+  `airing.json`, `facets.json`, `recommendations/`, `skip/`, `sources/lili/`, each hashed in
+  `manifest.aux.files`.
+- `docs/CLIENT-COVERAGE.md` with the verified Android/Web consumption matrix.
+- Per-repo migration packs written to each client's gitignored `.private` directory.
+
 ## v1 publication wiring - 2026-11-17
 
 ### Added

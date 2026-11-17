@@ -58,7 +58,10 @@ consumer breaks while the apps migrate:
 | `releases/{releaseId}/media/{bucket}/{mediaKey}.json` | canonical detail record, typed relations, provenance |
 | `releases/{releaseId}/episodes/{bucket}/{mediaKey}.json` | position-numbered episodes or an explicit missing-match state |
 | `releases/{releaseId}/catalog/{shard}.json` | bounded discovery rows (64 stable hash shards) |
+| `releases/{releaseId}/catalog/home.json` | precomputed home rows (snapshot ranks) |
+| `releases/{releaseId}/catalog/browse.json` | every title, compact, for client-side search/filter |
 | `releases/{releaseId}/search/universal/{bucket}.json` | normalised English/romaji/native/alias search buckets |
+| `releases/{releaseId}/schedule/`, `dub/`, `filler/`, `skip/`, `sources/lili/` | the auxiliary surfaces the apps already read, copied and hashed |
 | `manifest.json` | the only mutable file: an atomic pointer to the current release |
 
 `mediaKey` is `al-<anilistId>` for AniList-origin records. It is derived from the provider id, never

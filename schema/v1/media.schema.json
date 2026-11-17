@@ -19,7 +19,7 @@
   ],
   "additionalProperties": false,
   "properties": {
-    "schemaVersion": { "const": "1.0.0" },
+    "schemaVersion": { "const": "1.1.0" },
     "mediaKey": { "type": "string", "pattern": "^al-[1-9][0-9]*$" },
     "kind": { "const": "ANIME" },
     "ids": {
@@ -159,7 +159,8 @@
           },
           "mediaKey": { "type": ["string", "null"] },
           "resolved": { "type": "boolean" },
-          "name": { "type": ["string", "null"] }
+          "name": { "type": ["string", "null"] },
+          "node": { "type": "object", "additionalProperties": true }
         }
       }
     },
@@ -177,7 +178,8 @@
             "properties": { "anilist": { "type": "integer", "minimum": 1 } }
           },
           "mediaKey": { "type": ["string", "null"] },
-          "resolved": { "type": "boolean" }
+          "resolved": { "type": "boolean" },
+          "card": { "type": "object", "additionalProperties": true }
         }
       }
     },
@@ -185,6 +187,15 @@
       "type": "array",
       "items": { "type": "string", "pattern": "^al-[1-9][0-9]*$" }
     },
+    "seriesIds": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 }
+    },
+    "anilist": { "type": ["object", "null"], "additionalProperties": true },
+    "trailer": { "type": ["object", "null"], "additionalProperties": true },
+    "nextAiringEpisode": { "type": ["object", "null"], "additionalProperties": true },
+    "meanScore": { "type": ["integer", "null"] },
+    "favourites": { "type": ["integer", "null"] },
     "bangumi": {
       "type": ["object", "null"],
       "required": ["id", "confidence"],

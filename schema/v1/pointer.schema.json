@@ -17,7 +17,7 @@
   ],
   "additionalProperties": false,
   "properties": {
-    "schemaVersion": { "const": "1.0.0" },
+    "schemaVersion": { "const": "1.1.0" },
     "contract": { "const": "anilife.media" },
     "releaseId": { "type": "string", "pattern": "^rel-[0-9a-f]{16}$" },
     "releaseManifest": { "type": "string", "pattern": "^releases/rel-[0-9a-f]{16}/manifest\\.json$" },
@@ -27,14 +27,15 @@
     "publishedAt": { "type": "string", "format": "date-time" },
     "counts": {
       "type": "object",
-      "required": ["media", "episodeLists", "episodes", "relations", "adult"],
+      "required": ["media", "episodeLists", "episodes", "relations", "adult", "auxFiles"],
       "additionalProperties": false,
       "properties": {
         "media": { "type": "integer" },
         "episodeLists": { "type": "integer" },
         "episodes": { "type": "integer" },
         "relations": { "type": "integer" },
-        "adult": { "type": "integer" }
+        "adult": { "type": "integer" },
+        "auxFiles": { "type": "integer" }
       }
     }
   }

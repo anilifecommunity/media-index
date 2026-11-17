@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/compact-row.schema.json",
+  "title": "Anilife compact catalogue row v1",
+  "description": "Shared row shape for home and browse. Cheap to fetch, enough for cards and client-side filters.",
+  "type": "object",
+  "required": [
+    "mediaKey",
+    "anilistId",
+    "titles",
+    "poster",
+    "year",
+    "format",
+    "status",
+    "episodes",
+    "episodesAvailable",
+    "score",
+    "popularity",
+    "genres",
+    "isAdult",
+    "visibility"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "mediaKey": { "type": "string", "pattern": "^al-[1-9][0-9]*$" },
+    "anilistId": { "type": "integer", "minimum": 1 },
+    "titles": {
+      "type": "object",
+      "required": ["english", "romaji", "native", "display"],
+      "additionalProperties": false,
+      "properties": {
+        "english": { "type": ["string", "null"] },
+        "romaji": { "type": ["string", "null"] },
+        "native": { "type": ["string", "null"] },
+        "display": { "type": ["string", "null"] }
+      }
+    },
+    "poster": {
+      "type": ["object", "null"],
+      "required": ["url", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string" },
+        "source": { "type": "string" },
+        "color": { "type": ["string", "null"] }
+      }
+    },
+    "year": { "type": ["integer", "null"] },
+    "format": { "type": ["string", "null"] },
+    "status": { "type": ["string", "null"] },
+    "episodes": { "type": ["integer", "null"] },
+    "episodesAvailable": { "type": "boolean" },
+    "score": { "type": ["integer", "null"] },
+    "popularity": { "type": ["integer", "null"] },
+    "genres": { "type": "array", "items": { "type": "string" } },
+    "isAdult": { "type": ["boolean", "null"] },
+    "visibility": { "enum": ["general", "adult", "unknown-conservative"] }
+  }
+}

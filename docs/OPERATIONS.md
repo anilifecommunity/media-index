@@ -97,11 +97,13 @@ writing the pointer, so a corrupt or partial release cannot become current.
 
 ### Repository size
 
-Measured 2026-11-17: 28,922 files / ~131 MiB per release (20,900 media, 7,197 episode lists). With
-retention 2 the working tree is legacy data plus two releases (~108k files). Git deduplicates
-unchanged blobs, so daily growth is changed files plus tree entries; monitor `git count-objects
--vH` and checkout time. If the repository budget is exceeded, move `releases/` to Cloudflare R2 or
-an orphan data branch and keep only `manifest.json` in `main`.
+Measured 2026-11-17 v1.0: 28,922 files / ~131 MiB per release (20,900 media, 7,197 episode lists).
+The v1.1 parity build adds home/browse, relation and recommendation cards, and 1,760 auxiliary
+files: 30,684 files, estimated ~220 MiB without the optional raw `anilist` record. With retention 2
+the working tree is legacy data plus two releases (~100k files). Git deduplicates unchanged blobs,
+so daily growth is changed files plus tree entries; monitor `git count-objects -vH` and checkout
+time. If the repository budget is exceeded, move `releases/` to Cloudflare R2 or an orphan data
+branch and keep only `manifest.json` in `main`.
 
 Do not silently move 50k per-title files between layouts without that measurement.
 
