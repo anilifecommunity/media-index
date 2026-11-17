@@ -120,10 +120,10 @@ Do not silently move 50k per-title files between layouts without that measuremen
 
 | Gap | Reason / next step |
 | --- | --- |
-| Real publication is blocked | all sources are `unverified`; owner must record permission (P0 policy gate) |
-| No per-provider 429/failure counters in the committed status | generator prints and backs off, but does not persist counters; add a run report if publication resumes |
+| Source scope is fixed | the owner approved the existing scope on 2026-11-17; new fields, sources or cadence need a new review |
+| No per-provider 429/failure counters in the committed status | generator prints and backs off, but does not persist counters; add a run report if needed |
 | Manga catalogue is relation-only | the published tree contains manga nodes, not full manga records |
-| Character/staff, trailers, localized synopsis | not licensed/verified; out of scope until rights are recorded |
+| Character/staff, trailers, localized synopsis | no verified rights; out of scope until a new approval |
 | Artwork is reference-only | mirroring requires affirmative rights; no binary mirror is built |
 | Episode raw source ordinal | not present in the published tree; positions are consumer-visible numbering only |
-| GitHub large-tree budget unmeasured at release scale | see the cost guardrail above |
+| Repository growth from in-repo releases | measured 28,922 files / ~131 MiB per release with retention 2; monitor and move to R2 or an orphan data branch if needed |
