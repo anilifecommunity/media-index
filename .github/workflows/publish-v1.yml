@@ -1,0 +1,55 @@
+# Build and publish a v1 release from the tree already committed to main.
+#
+# The daily refresh does this itself after collecting. This workflow exists for the
+# case where the contract or the builder changed and the data did not: it avoids a
+# second multi-hour AniList/TMDB walk just to publish the new contract.
+name: Publish v1 release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-v1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests
+
+      - name: Contract tests
+        run: python scripts/test_release.py
+
+      - name: Build v1 release from the committed tree
+        run: |
+          python scripts/build_release.py --out . --prune-keep 2 --publish
+          python scripts/validate_release.py --root .
+          test -f manifest.json
+
+      - name: Commit
+        run: |
+          git config user.name "konoha-refresh"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A releases manifest.json
+          if git diff --cached --quiet; then
+            echo "No release change"
+          else
+            git commit -m "Publish v1 release $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
+
+      - name: Purge the pointer
+        run: |
+          curl -sS "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/manifest.json" > /dev/null
+          echo "::notice::v1 pointer purged"
