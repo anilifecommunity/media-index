@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/episodes.schema.json",
+  "title": "Anilife episode list v1",
+  "description": "Consumer-visible season numbering. A missing match is explicit, never an empty list.",
+  "type": "object",
+  "required": ["schemaVersion", "mediaKey", "kind", "availability", "episodes", "provenance"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "mediaKey": { "type": "string", "pattern": "^al-[1-9][0-9]*$" },
+    "kind": { "const": "ANIME" },
+    "availability": { "enum": ["AVAILABLE", "NO_CONFIDENT_MATCH"] },
+    "numbering": { "const": "position" },
+    "episodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["number", "title", "airDate", "still", "source"],
+        "additionalProperties": false,
+        "properties": {
+          "number": { "type": "integer", "minimum": 1 },
+          "title": { "type": ["string", "null"] },
+          "synopsis": { "type": ["string", "null"] },
+          "airDate": { "type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+          "runtimeMinutes": { "type": ["integer", "null"], "minimum": 0 },
+          "rating": { "type": ["number", "null"] },
+          "still": {
+            "type": ["object", "null"],
+            "required": ["url", "source"],
+            "additionalProperties": false,
+            "properties": {
+              "url": { "type": "string", "pattern": "^https://" },
+              "source": { "type": "string" }
+            }
+          },
+          "source": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source", "updatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "match": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

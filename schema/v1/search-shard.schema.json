@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/search-shard.schema.json",
+  "title": "Anilife search shard v1",
+  "description": "Prefix bucket of normalized title variants. Buckets are latin initials, digits, or one of eight balanced buckets for non-latin scripts.",
+  "type": "object",
+  "required": ["schemaVersion", "bucket", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "bucket": { "type": "string", "pattern": "^(?:[a-z]|num|other-[0-7])$" },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["mediaKey", "names", "visibility"],
+        "additionalProperties": false,
+        "properties": {
+          "mediaKey": { "type": "string", "pattern": "^al-[1-9][0-9]*$" },
+          "names": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "visibility": { "enum": ["general", "adult", "unknown-conservative"] }
+        }
+      }
+    }
+  }
+}

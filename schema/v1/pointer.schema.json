@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/pointer.schema.json",
+  "title": "Anilife release pointer v1",
+  "description": "The only mutable file. Tiny and atomic; it names the current immutable release.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "contract",
+    "releaseId",
+    "releaseManifest",
+    "contentHash",
+    "manifestSha256",
+    "generatedAt",
+    "publishedAt",
+    "counts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "contract": { "const": "anilife.media" },
+    "releaseId": { "type": "string", "pattern": "^rel-[0-9a-f]{16}$" },
+    "releaseManifest": { "type": "string", "pattern": "^releases/rel-[0-9a-f]{16}/manifest\\.json$" },
+    "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "manifestSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "publishedAt": { "type": "string", "format": "date-time" },
+    "counts": {
+      "type": "object",
+      "required": ["media", "episodeLists", "episodes", "relations", "adult"],
+      "additionalProperties": false,
+      "properties": {
+        "media": { "type": "integer" },
+        "episodeLists": { "type": "integer" },
+        "episodes": { "type": "integer" },
+        "relations": { "type": "integer" },
+        "adult": { "type": "integer" }
+      }
+    }
+  }
+}

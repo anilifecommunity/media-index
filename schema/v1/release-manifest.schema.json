@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/release-manifest.schema.json",
+  "title": "Anilife release manifest v1",
+  "description": "Immutable description of one content-addressed release. Large per-file inventories live in bucket manifests.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "contract",
+    "releaseId",
+    "generatedAt",
+    "contentHash",
+    "counts",
+    "sources",
+    "catalog",
+    "search",
+    "identity",
+    "ids",
+    "manifests"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "contract": { "const": "anilife.media" },
+    "releaseId": { "type": "string", "pattern": "^rel-[0-9a-f]{16}$" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "counts": {
+      "type": "object",
+      "required": ["media", "episodeLists", "relations", "adult"],
+      "additionalProperties": false,
+      "properties": {
+        "media": { "type": "integer", "minimum": 0 },
+        "episodeLists": { "type": "integer", "minimum": 0 },
+        "episodes": { "type": "integer", "minimum": 0 },
+        "relations": { "type": "integer", "minimum": 0 },
+        "adult": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "permitted"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "enum": ["verified", "unverified", "degraded", "blocked"] },
+          "permitted": { "type": "boolean" },
+          "lastUpdated": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "catalog": { "$ref": "#/$defs/fileList" },
+    "search": { "$ref": "#/$defs/fileList" },
+    "ids": { "$ref": "#/$defs/fileList" },
+    "identity": {
+      "type": "object",
+      "required": ["ledger"],
+      "additionalProperties": false,
+      "properties": { "ledger": { "$ref": "#/$defs/file" } }
+    },
+    "manifests": {
+      "type": "object",
+      "required": ["media", "episodes"],
+      "additionalProperties": false,
+      "properties": {
+        "media": { "$ref": "#/$defs/fileList" },
+        "episodes": { "$ref": "#/$defs/fileList" }
+      }
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["path", "bytes", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "fileList": {
+      "type": "object",
+      "required": ["files"],
+      "additionalProperties": false,
+      "properties": {
+        "files": { "type": "array", "items": { "$ref": "#/$defs/file" } }
+      }
+    }
+  }
+}

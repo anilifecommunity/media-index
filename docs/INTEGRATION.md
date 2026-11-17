@@ -1,0 +1,176 @@
+# Media Index v1 integration contract
+
+Audience: the Android and Web implementers. Pin to a **contract release ID**, not to `@main`.
+This document describes what is implemented in this repository today; it is not a promise about
+fields that are still `null` or marked blocked in `docs/SOURCE-POLICY.md`.
+
+## 1. Discovery and integrity
+
+```
+GET /manifest.json                     # mutable pointer, tiny
+GET /releases/{releaseId}/manifest.json # immutable release description
+```
+
+Pointer shape (`schema/v1/pointer.schema.json`):
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "contract": "anilife.media",
+  "releaseId": "rel-0123456789abcdef",
+  "releaseManifest": "releases/rel-0123456789abcdef/manifest.json",
+  "contentHash": "sha256:…",
+  "manifestSha256": "…",
+  "generatedAt": "2026-11-17T00:00:00Z",
+  "publishedAt": "2026-11-17T00:05:00Z",
+  "counts": { "media": 20900, "episodeLists": 7446, "episodes": 159624, "relations": 0, "adult": 0 }
+}
+```
+
+Client algorithm:
+
+1. Fetch `manifest.json` with `cache: "no-cache"` and a short timeout. Keep the previous pointer if
+   this fails; do not clear the catalogue.
+2. Compare `releaseId`. If unchanged, stop - nothing else needs fetching.
+3. Fetch the release manifest, verify `manifestSha256` matches the pointer, and check
+   `schemaVersion` is a major you support.
+4. Before using a media/episode file, fetch its bucket manifest and verify `sha256` and `bytes`.
+   Bucket manifests are small; cache them per release.
+5. Promote the new release only after the checks in step 3-4 pass for the records you use. Keep the
+   previous release available for instant rollback.
+
+`releases/{releaseId}/...` is immutable and content-addressed. Cache it indefinitely. Only
+`manifest.json` is mutable. jsDelivr caches `@main` for up to twelve hours and the publisher purges
+the pointer and changed paths after each commit, but a client must still tolerate a stale pointer.
+
+## 2. Paths
+
+| Path | Contents |
+| --- | --- |
+| `releases/{id}/catalog/{00..63}.json` | discovery rows, stable hash shard of `mediaKey` |
+| `releases/{id}/media/{bucket}/{mediaKey}.json` | canonical detail, relations and recommendations inline |
+| `releases/{id}/episodes/{bucket}/{mediaKey}.json` | episode list; only present when a confident match exists |
+| `releases/{id}/search/universal/{a..z,num,other-0..7}.json` | normalised title variants for prefix search |
+| `releases/{id}/ids/anilist/anime/{shard}.json` | AniList id → `mediaKey` |
+| `releases/{id}/ids/mal/anime/{shard}.json` | MAL anime id → `mediaKey` |
+| `releases/{id}/identity/ledger.json` | alias ledger: `mediaKey`, `kind`, `ids` |
+| `releases/{id}/manifests/media/{bucket}.json` | per-file `sha256`/`bytes` for media records |
+| `releases/{id}/manifests/episodes/{bucket}.json` | per-file `sha256`/`bytes` for episode records |
+
+`bucket` is the first two hex characters of `sha256(mediaKey)`. `shard` for ids is
+`floor(providerId / 1000)`, preserving the legacy sharding convention. Catalogue shards are
+`sha256(mediaKey)[2:10] % 64`. A key never moves between shards.
+
+Relations are **inline** in the media record rather than a separate endpoint. At this catalogue
+size they are small and every consumer that needs a relation already fetched the record; a second
+file would double the tree for no benefit. This is the one intentional deviation from the proposed
+endpoint list in the handoff.
+
+## 3. Identity
+
+- `mediaKey` for anything AniList-origin is `al-<anilistId>`. It is derived deterministically and
+  is never reassigned. Existing numeric AniList ids remain valid forever.
+- `kind` is `ANIME` for every catalogue record today. Relation nodes may be `ANIME`, `MANGA` or
+  `UNKNOWN`; a manga node has no first-class media record yet, so `resolved` is `false` and
+  `mediaKey` is `null`.
+- `ids` uses explicit provider namespaces. MAL anime and MAL manga ids are not interchangeable;
+  the current tree only carries `mal` for anime records.
+- The alias ledger is the source of truth for ids that cannot be derived from an AniList id. Do not
+  merge two records on name similarity. Ambiguous joins stay unresolved.
+
+## 4. Field semantics
+
+- Unknown is `null`, never `0`, `""` or a fabricated value. `titles.english`/`native` being `null`
+  means the source did not state it.
+- `isAdult` is `true`, `false` or `null`. `visibility` is the transport-level answer:
+  - `general` - source explicitly says not adult;
+  - `adult` - source explicitly says adult;
+  - `unknown-conservative` - **treat as potentially adult** in suggestions, search and home rails.
+    Do not infer safety from a missing `Hentai` genre.
+- `synopsis.text` is plain text with markup removed. `language` is `null` when the source does not
+  state one; do not label it English by assumption.
+- `episodes.declared` is the source episode count. `episodes.available` is `false` when no confident
+  episode match exists. No episode file is written in that case - that is an answer, not a failure.
+- Episode `number` is consumer-visible position, renumbered from 1 per the existing Konoha rule. Raw
+  TMDB season/number is not in the published tree today; it is a documented omission, not a
+  silently copied value. Never relabel a viewer's progress from this field.
+- `relations[].relationType` is the provider's directed edge type (`ADAPTATION`, `PREQUEL`,
+  `SEQUEL`, `SIDE_STORY`, `SUMMARY`, …). `kind` is the related record's media kind.
+- Images are references with `source`, `kind`, `permission: "reference-only"` and attribution.
+  There is no guaranteed offline mirror. Supply a local placeholder when a host fails; never imply
+  the URL is owned by Anilife.
+- `provenance.updatedAt` is the generation time of the record's source snapshot, not a promise of
+  live data. Dynamic rankings are snapshot ranks.
+
+## 5. Search
+
+Search buckets contain normalised names: compatibility-normalised, case-folded, Latin diacritics
+stripped, Japanese kana preserved, whitespace collapsed. Latin titles bucket by first letter, digit
+titles by `num`, everything else by one of eight balanced `other-*` buckets.
+
+Recommended client behaviour:
+
+1. Map the query's first character to one bucket.
+2. Fetch that bucket once and cache it per release.
+3. Match prefix first, then substring within the bucket; rank exact title, romaji, English, native,
+   then alias.
+4. Apply the adult filter to `visibility`, including `unknown-conservative` when the viewer's
+   setting requires it.
+
+Do not download all buckets per keystroke. Do not call a provider API for a query that a local
+bucket can answer.
+
+## 6. Fallback and degradation
+
+| State | Condition | Client behaviour |
+| --- | --- | --- |
+| `LIVE` | provider works and freshness accepted | normal path |
+| `INDEX` | provider down/429/5xx; verified release fetched | serve the release with provenance |
+| `LOCAL` | remote release unavailable | last verified on-device/browser snapshot |
+| `UNAVAILABLE` | no valid data | actionable empty/error state |
+
+Never bypass adult filters, permissions or availability rules when falling back. A metadata cache
+is not an account-sync backend. A first-time browser has no offline data; do not pretend otherwise.
+
+## 7. Validation and budgets
+
+`python scripts/validate_release.py --root <out> --schemas` verifies manifests, every hash, counts,
+the content hash and the pointer. Clients should implement the same checks, at minimum for the
+files they consume.
+
+Payload budgets are enforced by the catalogue design, not by trust: catalogue shards are sized for
+bounded first-load fetches; media records are single-title fetches; bucket manifests are smaller
+than the records they describe. Measure the release you pin and record the numbers in your
+integration PR. The v1 release contains roughly 30,000 files at the current catalogue size; do not
+fetch the whole tree on startup.
+
+## 8. Compatibility and migration
+
+- Legacy paths stay available: `/data/index.json`, `/data/anime/{floor(id/1000)}/{id}/index.json`,
+  `/data/anime/{floor(id/1000)}/{id}/episodes.json`, `/data/mappings/mal/...`, `/data/schedule/...`,
+  `/data/recs/neighbours-v1.tsv.gz`. They are generated from the same snapshot and tested.
+- During migration, resolve an existing numeric AniList id to `al-<id>`; do not rewrite user
+  history, list ids, progress or deep links.
+- Bump the schema **major** for a breaking change, publish a migration guide and keep the previous
+  major readable until both clients have shipped. Never change the meaning of an existing field.
+- Rollback: the previous release remains on disk (retention is two by default). `python
+  scripts/rollback_release.py --root <out> --release previous` verifies it and swaps the pointer
+  atomically; clients that already verified the newer release keep working from their cache.
+
+## 9. Known omissions at this release
+
+- No first-class manga catalogue, characters/staff, trailers or localized synopses beyond the
+  Bangumi aliases present in anime detail.
+- Synonyms come only from source-stated AniList/Bangumi names; no translation or romanisation is
+  invented.
+- Episode raw source ordinals and season numbers are not exposed.
+- No binary artwork mirror, no offline guarantee for third-party image hosts.
+- Source rights are unverified, so no real publication has been approved. A staging release built
+  with `--allow-unverified-sources` demonstrates the mechanics only.
+
+## 10. Required attribution
+
+Display the source attribution for any metadata or artwork shown: AniList, TMDB ("This product uses
+the TMDB API but is not endorsed or certified by TMDB"), Bangumi and AniZip where their fields are
+used. Keep the attribution text in the app's about/licenses screen and next to imagery where the
+provider requires it.

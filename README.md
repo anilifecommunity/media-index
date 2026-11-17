@@ -4,17 +4,21 @@ Static anime metadata — title details, episode lists, and cross-database id ma
 from [AniList](https://anilist.co) and [TMDB](https://www.themoviedb.org), served over the jsDelivr
 CDN with no server-side logic.
 
-Rebuilt daily by a GitHub Action. Roughly 20,800 titles and 135,000 episodes.
+Rebuilt by a GitHub Action (currently gated on source-rights approval; see
+[`docs/SOURCE-POLICY.md`](docs/SOURCE-POLICY.md)). 20,900 titles and 159,624 episode records.
 
 ## Data access
 
 ```
-https://cdn.jsdelivr.net/gh/pommieyewear/media-index@main/data
+https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/data
 ```
 
-Renamed from `anilili-metadata` on 2026-09-21. The old URL still resolves — GitHub redirects a
-renamed repository and jsDelivr follows the redirect — so anything already pointing at it keeps
+Renamed from `anilili-metadata` on 2026-09-21. The old URL still resolves - GitHub redirects a
+renamed repository and jsDelivr follows the redirect - so anything already pointing at it keeps
 working, but new consumers should use the name above.
+
+The `data/` paths below are the **legacy compatibility contract**. They stay readable while the
+Android and Web apps migrate to the versioned v1 contract in [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
 | File | Contents |
 | --- | --- |
@@ -32,7 +36,7 @@ working, but new consumers should use the name above.
 mappings on the MyAnimeList id.
 
 ```javascript
-const BASE = "https://cdn.jsdelivr.net/gh/pommieyewear/media-index@main/data";
+const BASE = "https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/data";
 
 const catalog = await fetch(`${BASE}/index.json`).then(r => r.json());
 
@@ -41,6 +45,39 @@ const episodeUrl = id => `${BASE}/anime/${Math.floor(id / 1000)}/${id}/episodes.
 
 const episodes = await fetch(episodeUrl(171018)).then(r => r.json()); // DAN DA DAN
 ```
+
+## Versioned contract (v1)
+
+Schema v1 is generated **alongside** the legacy tree, from the same committed data, so no existing
+consumer breaks while the apps migrate:
+
+| Path | Purpose |
+| --- | --- |
+| `schema/v1/*.schema.json` | JSON Schema for media, catalogue, episodes, search, manifests and source rights |
+| `releases/{releaseId}/manifest.json` | immutable release description: counts, sources, per-file hashes, bucket manifests |
+| `releases/{releaseId}/media/{bucket}/{mediaKey}.json` | canonical detail record, typed relations, provenance |
+| `releases/{releaseId}/episodes/{bucket}/{mediaKey}.json` | position-numbered episodes or an explicit missing-match state |
+| `releases/{releaseId}/catalog/{shard}.json` | bounded discovery rows (64 stable hash shards) |
+| `releases/{releaseId}/search/universal/{bucket}.json` | normalised English/romaji/native/alias search buckets |
+| `manifest.json` | the only mutable file: an atomic pointer to the current release |
+
+`mediaKey` is `al-<anilistId>` for AniList-origin records. It is derived from the provider id, never
+reassigned, and the alias ledger (`releases/{releaseId}/identity/ledger.json`) is the authority for
+any future non-AniList key. A release id is `rel-<first 16 hex of the content hash>`, so an unchanged
+catalogue reuses the same release instead of rewriting files.
+
+Build and verify a staging release (safe; does not publish):
+
+```bash
+python scripts/build_release.py --out build/v1 --publish --allow-unverified-sources
+python scripts/validate_release.py --root build/v1 --schemas
+python scripts/rollback_release.py --root build/v1 --release previous
+```
+
+`--publish` refuses to swap the pointer while any source in `policy/source-rights.json` is
+unverified. `--allow-unverified-sources` is for staging demonstrations only. See
+[`docs/INTEGRATION.md`](docs/INTEGRATION.md) for consumer rules and
+[`docs/SOURCE-POLICY.md`](docs/SOURCE-POLICY.md) for the rights gate.
 
 ## Two things worth knowing before you rely on it
 
@@ -67,13 +104,29 @@ python scripts/konoha_build.py episodes         # TMDB episode lists, ~20 min
 python scripts/konoha_build.py emit --out data
 ```
 
-`episodes` needs a TMDB v4 read token in `TMDB_READ_TOKEN`. `scripts/test_konoha_build.py` covers
-the title and season matching rules; run it after touching either.
+`episodes` needs a TMDB v4 read token in `TMDB_READ_TOKEN`. Run the checks before committing:
+
+```bash
+python scripts/test_konoha_build.py
+python scripts/test_recs_build.py
+python scripts/test_release.py
+python scripts/test_health.py
+python scripts/audit_dataset.py --strict
+python scripts/publish_health.py --deep
+```
 
 The daily workflow only re-asks TMDB about titles that can still change. Use the **full** input on
 a manual run to rebuild everything.
+
+The workflow will not collect anything until the repository variable `SOURCE_RIGHTS_APPROVED` is
+`true`. Without it the publish job is skipped, the last known good tree stays current, and the run
+reports `blocked` in its summary. That is deliberate: see `docs/SOURCE-POLICY.md`.
 
 ## Notes
 
 Not affiliated with AniList or TMDB. This product uses the TMDB API but is not endorsed or
 certified by TMDB. Metadata belongs to its respective sources; this repository is a cache.
+
+The MIT-0 licence covers this repository's code and its own contributions. It does not relicense
+AniList, MAL, TMDB, Bangumi or AniZip data, nor any studio artwork. Sources are unverified until
+permission is recorded in `policy/source-rights.json`; an unverified status is not permission.
