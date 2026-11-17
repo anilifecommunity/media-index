@@ -45,8 +45,10 @@ jobs:
     steps:
       - name: Check source-rights approval
         id: check
+        env:
+          APPROVED: ${{ vars.SOURCE_RIGHTS_APPROVED }}
         run: |
-          if [ "${{ vars.SOURCE_RIGHTS_APPROVED }}" = "true" ]; then
+          if [ "$APPROVED" = "true" ]; then
             echo "allowed=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Source rights are marked approved for this repository."
           else
@@ -93,6 +95,10 @@ jobs:
       - name: Walk AniList
         run: python scripts/konoha_build.py catalog
 
+      # Stamped for source-specific freshness in sync-status.json.
+      - name: Stamp AniList freshness
+        run: echo "ANILIST_FETCHED_AT=$(date -u +%FT%TZ)" >> "$GITHUB_ENV"
+
       # `ids` re-fetches finished titles the airing pass never revisits. That matters because emit
       # deletes an episodes.json whose cached answer is empty: a list published by hand for a
       # finished title survives only once this cache holds the same answer, and this is how it gets
@@ -101,12 +107,13 @@ jobs:
         env:
           TMDB_READ_TOKEN: ${{ secrets.TMDB_READ_TOKEN }}
           REFETCH_IDS: ${{ inputs.ids }}
+          FULL_REBUILD: ${{ inputs.full }}
         run: |
           # The committed AniZip answers carry the air dates the near-count season check reads, and
           # the emit step's copy below comes too late for it.
           mkdir -p build/konoha/anizip
           if [ -d anizip ]; then cp -r anizip/. build/konoha/anizip/; fi
-          if [ "${{ inputs.full }}" = "true" ]; then
+          if [ "$FULL_REBUILD" = "true" ]; then
             python scripts/konoha_build.py episodes --out data
           else
             python scripts/konoha_build.py episodes --out data --airing-only
@@ -114,6 +121,10 @@ jobs:
           if [ -n "$REFETCH_IDS" ]; then
             python scripts/konoha_build.py episodes --out data --ids "$REFETCH_IDS"
           fi
+
+      # Stamped for source-specific freshness in sync-status.json.
+      - name: Stamp TMDB freshness
+        run: echo "TMDB_FETCHED_AT=$(date -u +%FT%TZ)" >> "$GITHUB_ENV"
 
       # AniZip answers (the series' clearlogo and per-episode scores) are fetched off this runner by
       # `konoha_build.py anizip` and committed under anizip/, because emit reads them from the

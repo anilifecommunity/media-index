@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import pathlib
 import sys
@@ -22,6 +24,11 @@ def check(label: str, actual: object, expected: object) -> None:
         FAILURES.append(f"{label}\n    expected {expected!r}\n    got      {actual!r}")
 
 
+def check_true(label: str, value: bool) -> None:
+    if not value:
+        FAILURES.append(f"{label}\n    expected truthy, got {value!r}")
+
+
 def write(path: pathlib.Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(lib.canonical_bytes(payload))
@@ -31,7 +38,18 @@ def fixture(root: pathlib.Path, *, stamp: str = "2026-11-17T00:00:00Z", duplicat
     data = root / "data"
     write(data / "index.json", [{"id": 1, "title": "One"}, {"id": 1 if duplicate else 2, "title": "Two"}])
     write(data / "stats.json", {"total": 2, "last_updated": stamp})
-    write(data / "sync-status.json", {"source": "anilist+tmdb", "generator": "test", "last_updated": stamp})
+    write(
+        data / "sync-status.json",
+        {
+            "source": "anilist+tmdb",
+            "generator": "test",
+            "last_updated": stamp,
+            "sources": {
+                "anilist": {"last_updated": stamp},
+                "tmdb": {"last_updated": stamp},
+            },
+        },
+    )
     write(data / "id-map.json", {"1": {"mal": 1}, "2": {"mal": 2}})
     write(data / "genres.json", ["Action"])
     write(data / "years.json", [2020])
@@ -72,6 +90,8 @@ def main() -> int:
         report = run(data, policy, now=now)
         check("healthy state", report["state"], "ok")
         check("healthy age", report["ageHours"], 12.0)
+        names = {item["name"] for item in report["checks"]}
+        check_true("per-source freshness checked", {"source:anilist", "source:tmdb"} <= names)
         check("healthy exit", {"ok": 0, "stale": 1, "failed": 2, "blocked": 3}[report["state"]], 0)
 
         stale = run(data, policy, now=datetime(2026, 11, 25, 12, 0, tzinfo=timezone.utc))
@@ -79,6 +99,18 @@ def main() -> int:
 
         blocked = run(data, policy_file(root, name="unverified.json"), now=now)
         check("blocked state", blocked["state"], "blocked")
+        with contextlib.redirect_stdout(io.StringIO()):
+            allowed_code = health.main(
+                [
+                    "--data",
+                    str(data),
+                    "--policy",
+                    str(root / "unverified.json"),
+                    "--allow-blocked",
+                    "--json",
+                ]
+            )
+        check("allow-blocked exit code", allowed_code, 0)
 
         required = run(data, policy_file(root, name="strict.json"), now=now, require_permitted=True)
         check("require-permitted fails", required["state"], "failed")

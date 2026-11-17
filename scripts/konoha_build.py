@@ -1935,6 +1935,11 @@ def _write(path: pathlib.Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
+def _fetched_at(name: str, fallback: str) -> str:
+    """The workflow stamps each collector's completion; emit falls back to now."""
+    return os.environ.get(f"{name.upper()}_FETCHED_AT") or fallback
+
+
 # The app's own season-chain limits (MiruroRepository.MAX_SERIES_ENTRIES / MAX_SERIES_DEPTH).
 MAX_SERIES_ENTRIES = 16
 MAX_SERIES_DEPTH = 8
@@ -2202,7 +2207,21 @@ def cmd_emit(args: argparse.Namespace) -> int:
     )
     _write(
         out / "sync-status.json",
-        {"source": "anilist+tmdb", "generator": "scripts/konoha_build.py", "last_updated": now},
+        {
+            "source": "anilist+tmdb",
+            "generator": "scripts/konoha_build.py",
+            "last_updated": now,
+            "schema": 2,
+            "sources": {
+                "anilist": {"last_updated": _fetched_at("anilist", now)},
+                "tmdb": {"last_updated": _fetched_at("tmdb", now)},
+            },
+            "counts": {
+                "titles": len(index_rows),
+                "episodes": episode_count,
+                "mappings": len(id_map),
+            },
+        },
     )
 
     print(f"titles      {len(index_rows)}")

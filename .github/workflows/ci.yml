@@ -38,6 +38,7 @@ jobs:
         run: |
           python scripts/test_release.py
           python scripts/test_health.py
+          python scripts/test_compat.py
 
       - name: Dataset invariants
         run: python scripts/audit_dataset.py --strict --json > /dev/null
@@ -45,7 +46,7 @@ jobs:
       # Freshness is enforced by the refresh workflow, which is the job allowed to
       # change the tree. CI only proves the committed tree is internally consistent.
       - name: Publication health
-        run: python scripts/publish_health.py --max-age-hours 876000
+        run: python scripts/publish_health.py --max-age-hours 876000 --allow-blocked
 
       - name: Build and verify a staging release
         run: |
@@ -56,3 +57,6 @@ jobs:
             --allow-unverified-sources
           python scripts/validate_release.py --root build/ci --schemas
           python scripts/rollback_release.py --root build/ci --list
+
+      - name: Verify the committed consumer fixtures
+        run: python scripts/validate_release.py --root fixtures/v1 --schemas

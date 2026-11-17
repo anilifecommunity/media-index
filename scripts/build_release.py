@@ -48,13 +48,13 @@ def _write(path: pathlib.Path, payload) -> tuple[int, str]:
     return len(data), lib.sha256_hex(data)
 
 
-def source_status(policy: dict) -> list[dict]:
+def source_status(policy: dict, updated_at: str) -> list[dict]:
     return [
         {
             "name": item["name"],
             "status": "verified" if item.get("status") == "verified" else item.get("status", "unverified"),
             "permitted": bool(item.get("permitted")),
-            "lastUpdated": item.get("lastUpdated"),
+            "lastUpdated": updated_at,
         }
         for item in policy.get("sources", [])
     ]
@@ -89,6 +89,35 @@ def build(
 
     out_dir.mkdir(parents=True, exist_ok=True)
     staging = pathlib.Path(tempfile.mkdtemp(prefix=".release-", dir=out_dir))
+    try:
+        return _build_into(
+            staging,
+            out_dir,
+            data_dir,
+            policy,
+            rows=rows,
+            known_anime=known_anime,
+            id_map=id_map,
+            updated_at=updated_at,
+            generated_at=generated_at,
+        )
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+
+
+def _build_into(
+    staging: pathlib.Path,
+    out_dir: pathlib.Path,
+    data_dir: pathlib.Path,
+    policy: dict,
+    *,
+    rows: list[dict],
+    known_anime: set[int],
+    id_map: dict,
+    updated_at: str,
+    generated_at: str,
+) -> dict:
     content_files: list[dict] = []
     media_manifest: dict[str, list[dict]] = {}
     episode_manifest: dict[str, list[dict]] = {}
@@ -173,12 +202,10 @@ def build(
 
         for name in lib.search_names(media):
             bucket_name = lib.search_bucket_of_normalized(name)
-            search_rows.setdefault(bucket_name, {})[key] = {
-                "mediaKey": key,
-                "names": [],
-                "visibility": media["visibility"],
-            }
-            bucket_rows = search_rows[bucket_name][key]
+            bucket_rows = search_rows.setdefault(bucket_name, {}).setdefault(
+                key,
+                {"mediaKey": key, "names": [], "visibility": media["visibility"]},
+            )
             if name not in bucket_rows["names"]:
                 bucket_rows["names"].append(name)
 
@@ -284,7 +311,7 @@ def build(
         "generatedAt": generated_at,
         "contentHash": content_hash,
         "counts": counts,
-        "sources": source_status(policy),
+        "sources": source_status(policy, updated_at),
         "catalog": {
             "files": [item for item in content_files if item["path"].startswith("catalog/")]
         },
@@ -299,7 +326,10 @@ def build(
                 dict(item) for item in content_files if item["path"] == "identity/ledger.json"
             )
         },
-        "manifests": manifest_entries,
+        "manifests": {
+            "media": {"files": manifest_entries["media"]},
+            "episodes": {"files": manifest_entries["episodes"]},
+        },
     }
     _, manifest_digest = _write(staging / "manifest.json", release_manifest)
 
@@ -346,7 +376,13 @@ def write_pointer(out_dir: pathlib.Path, summary: dict, published_at: str | None
             existing = _load_json(path)
         except json.JSONDecodeError:
             existing = None
-        if existing and existing.get("releaseId") == summary["releaseId"]:
+        if (
+            existing
+            and existing.get("releaseId") == summary["releaseId"]
+            and existing.get("contentHash") == summary["contentHash"]
+            and existing.get("manifestSha256") == summary["manifestSha256"]
+            and existing.get("counts") == summary["counts"]
+        ):
             return existing
     temporary = out_dir / ".manifest.json.tmp"
     temporary.parent.mkdir(parents=True, exist_ok=True)
@@ -400,6 +436,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--prune-keep", type=int, default=2, help="retained releases (0 disables)")
     parser.add_argument("--limit", type=int, default=0, help="build only the first N catalogue rows")
     parser.add_argument("--generated-at", help="fixed timestamp for reproducible fixtures")
+    parser.add_argument("--published-at", help="fixed pointer timestamp for reproducible fixtures")
     args = parser.parse_args(argv)
 
     policy = _load_json(args.policy)
@@ -421,7 +458,7 @@ def main(argv: list[str]) -> int:
         generated_at=args.generated_at,
     )
     if args.publish:
-        pointer = write_pointer(args.out, summary)
+        pointer = write_pointer(args.out, summary, published_at=args.published_at)
         summary["pointer"] = pointer
         summary["pruned"] = prune(args.out, args.prune_keep, summary["releaseId"])
 

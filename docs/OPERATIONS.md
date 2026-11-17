@@ -88,8 +88,9 @@ new release directory.
 
 ### Cost guardrail
 
-The current `data/` tree is 50,016 blobs / ~196 MiB. A full v1 release adds roughly 30,000 files.
-Committing every release to `main` would grow the working tree without bound. Before enabling real
+The current `data/` tree is 50,016 blobs / ~196 MiB. The measured v1 staging release is 28,922
+files / ~131 MiB (content hash `sha256:19bdc75e…`, 20,900 media, 7,197 episode lists). Committing
+every release to `main` would grow the working tree without bound. Before enabling real
 publication:
 
 1. measure cold refresh time, peak memory/disk and release bytes;
@@ -116,7 +117,6 @@ Do not silently move 50k per-title files between layouts without that measuremen
 | --- | --- |
 | Real publication is blocked | all sources are `unverified`; owner must record permission (P0 policy gate) |
 | No per-provider 429/failure counters in the committed status | generator prints and backs off, but does not persist counters; add a run report if publication resumes |
-| Source-specific freshness is one timestamp | `sync-status.json` has one `last_updated`; per-source times need generator instrumentation |
 | Manga catalogue is relation-only | the published tree contains manga nodes, not full manga records |
 | Character/staff, trailers, localized synopsis | not licensed/verified; out of scope until rights are recorded |
 | Artwork is reference-only | mirroring requires affirmative rights; no binary mirror is built |

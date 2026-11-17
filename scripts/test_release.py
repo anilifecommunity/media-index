@@ -172,7 +172,7 @@ def make_fixture(root: pathlib.Path) -> pathlib.Path:
                 "id": 253,
                 "name": "カウボーイビバップ",
                 "name_cn": "星际牛仔",
-                "search_names": ["Cowboy Bebop"],
+                "search_names": ["Cowboy Bebop: The Movie"],
                 "confidence": "STRONG",
             },
         },
@@ -250,6 +250,13 @@ def test_build(root: pathlib.Path, data: pathlib.Path) -> dict:
     check("image attribution", media["images"]["poster"]["attribution"], "anilist")
     check("series keys", media["series"], ["al-1", "al-3"])
 
+    release_manifest = json.loads((release_dir / "manifest.json").read_text("utf-8"))
+    check(
+        "source status carries snapshot time",
+        release_manifest["sources"][0]["lastUpdated"],
+        "2026-11-17T00:00:00Z",
+    )
+
     manga_edge = next(edge for edge in media["relations"] if edge["kind"] == "MANGA")
     check("manga relation resolved", manga_edge["resolved"], False)
     check("manga relation key", manga_edge["mediaKey"], None)
@@ -288,6 +295,10 @@ def test_build(root: pathlib.Path, data: pathlib.Path) -> dict:
     check_true("romaji searchable", "cowboy bebop" in search["al-1"])
     check_true("native searchable", "カウボーイビバップ" in search["al-1"])
     check_true("chinese alias searchable", "星际牛仔" in search["al-1"])
+
+    c_bucket = json.loads((release_dir / "search" / "universal" / "c.json").read_text("utf-8"))
+    c_row = next(row for row in c_bucket["rows"] if row["mediaKey"] == "al-1")
+    check_true("same-bucket aliases retained", len(c_row["names"]) >= 2)
 
     validation = verify_release(out, "current", full=True, schemas=False)
     check_true("files verified", validation["filesVerified"] > 0)
@@ -329,6 +340,14 @@ def test_rollback(root: pathlib.Path, data: pathlib.Path) -> None:
     pointer = json.loads((out / "manifest.json").read_text("utf-8"))
     check("pointer after rollback", pointer["releaseId"], first["releaseId"])
     verify_release(out, "current", full=True, schemas=False)
+
+    pointer_path = out / "manifest.json"
+    good_pointer = pointer_path.read_bytes()
+    broken = json.loads(good_pointer)
+    broken["releaseId"] = "rel-0000000000000000"
+    write(pointer_path, broken)
+    expect_refusal("missing pointer target rejected", lambda: verify_release(out, "current", full=False))
+    pointer_path.write_bytes(good_pointer)
 
     removed = build_release.prune(out, 1, second["releaseId"])
     check("prune keeps pointer and newest", removed, [])

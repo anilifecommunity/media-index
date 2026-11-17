@@ -74,6 +74,7 @@ def resolve_release(root: pathlib.Path, release: str | None) -> str:
             release_id = _load(pointer).get("releaseId")
             if release_id in available:
                 return release_id
+            raise VerificationError(f"pointer names a missing release: {release_id!r}")
         return available[-1]
     if release == "previous":
         if len(available) < 2:
@@ -109,15 +110,15 @@ def _validate_schemas(root: pathlib.Path, release_dir: pathlib.Path, release: di
         validated += 1
 
     check("release", release)
-    for item in release["manifests"]["media"]:
+    for item in release["manifests"]["media"]["files"]:
         check("bucket", _load(release_dir / item["path"]))
-    for item in release["manifests"]["episodes"]:
+    for item in release["manifests"]["episodes"]["files"]:
         check("bucket", _load(release_dir / item["path"]))
     for item in release["catalog"]["files"]:
         check("catalog", _load(release_dir / item["path"]))
     for item in release["search"]["files"]:
         check("search", _load(release_dir / item["path"]))
-    check("media", _load(release_dir / "media" / _first_media(release_dir, release)[0]))
+    check("media", _load(release_dir / _first_media(release_dir, release)[0]))
     check("episodes", _load(release_dir / _first_episode(release_dir, release)))
     pointer = root / "manifest.json"
     if pointer.is_file():
@@ -126,7 +127,7 @@ def _validate_schemas(root: pathlib.Path, release_dir: pathlib.Path, release: di
 
 
 def _first_media(release_dir: pathlib.Path, release: dict) -> tuple[str, dict]:
-    for item in release["manifests"]["media"]:
+    for item in release["manifests"]["media"]["files"]:
         bucket = _load(release_dir / item["path"])
         if bucket["files"]:
             return bucket["files"][0]["path"], bucket
@@ -134,7 +135,7 @@ def _first_media(release_dir: pathlib.Path, release: dict) -> tuple[str, dict]:
 
 
 def _first_episode(release_dir: pathlib.Path, release: dict) -> str:
-    for item in release["manifests"]["episodes"]:
+    for item in release["manifests"]["episodes"]["files"]:
         bucket = _load(release_dir / item["path"])
         if bucket["files"]:
             return bucket["files"][0]["path"]
@@ -177,7 +178,7 @@ def verify_release(
     content.append(release["identity"]["ledger"])
 
     media_entries: list[dict] = []
-    for item in release["manifests"]["media"]:
+    for item in release["manifests"]["media"]["files"]:
         path = release_dir / item["path"]
         payload = path.read_bytes()
         _check(len(payload) == item["bytes"], f"bucket manifest size mismatch: {item['path']}")
@@ -187,7 +188,7 @@ def verify_release(
         media_entries.extend(bucket["files"])
 
     episode_entries: list[dict] = []
-    for item in release["manifests"]["episodes"]:
+    for item in release["manifests"]["episodes"]["files"]:
         path = release_dir / item["path"]
         payload = path.read_bytes()
         _check(len(payload) == item["bytes"], f"bucket manifest size mismatch: {item['path']}")

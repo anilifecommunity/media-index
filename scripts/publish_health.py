@@ -131,6 +131,18 @@ def run(
     else:
         _check(checks, "freshness", "ok", f"{age} h old, SLO {max_age_hours} h")
 
+    sources = (sync or {}).get("sources") or {}
+    for name in sorted(sources):
+        source_age = _age_hours((sources[name] or {}).get("last_updated"), now)
+        if source_age is None:
+            _check(checks, f"source:{name}", "failed", "no last_updated")
+            failed = True
+        elif source_age > max_age_hours:
+            _check(checks, f"source:{name}", "stale", f"{source_age} h old, SLO {max_age_hours} h")
+            stale = True
+        else:
+            _check(checks, f"source:{name}", "ok", f"{source_age} h old, SLO {max_age_hours} h")
+
     try:
         policy = _load(policy_path)
     except (OSError, json.JSONDecodeError) as exc:
@@ -218,6 +230,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--release-root", type=pathlib.Path)
     parser.add_argument("--markdown", action="store_true")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--allow-blocked", action="store_true", help="exit 0 for the expected rights block")
     args = parser.parse_args(argv)
 
     report = run(
@@ -233,7 +246,10 @@ def main(argv: list[str]) -> int:
     if args.json or not args.markdown:
         print(json.dumps(report, indent=2))
 
-    return {"ok": 0, "stale": 1, "failed": 2, "blocked": 3}[report["state"]]
+    code = {"ok": 0, "stale": 1, "failed": 2, "blocked": 3}[report["state"]]
+    if code == 3 and args.allow_blocked:
+        return 0
+    return code
 
 
 if __name__ == "__main__":

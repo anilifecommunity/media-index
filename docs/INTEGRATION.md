@@ -138,11 +138,25 @@ is not an account-sync backend. A first-time browser has no offline data; do not
 the content hash and the pointer. Clients should implement the same checks, at minimum for the
 files they consume.
 
-Payload budgets are enforced by the catalogue design, not by trust: catalogue shards are sized for
-bounded first-load fetches; media records are single-title fetches; bucket manifests are smaller
-than the records they describe. Measure the release you pin and record the numbers in your
-integration PR. The v1 release contains roughly 30,000 files at the current catalogue size; do not
-fetch the whole tree on startup.
+Payload budgets are enforced by the catalogue design, not by trust. Measured on the 2026-11-17
+staging release (20,900 titles, 7,197 episode lists, 159,624 episodes):
+
+| File | Count | Largest | Average |
+| --- | --- | --- | --- |
+| `catalog/{shard}.json` | 64 | 210 KB | 190 KB |
+| `search/universal/{bucket}.json` | 35 | 447 KB | 174 KB |
+| `media/{bucket}/{key}.json` | 20,900 | 26.6 KB | 2.8 KB |
+| `episodes/{bucket}/{key}.json` | 7,197 | 707 KB | 7.5 KB |
+| `manifests/media/{bucket}.json` | 256 | 16 KB | 11.5 KB |
+| release manifest | 1 | 104 KB | 104 KB |
+| identity ledger | 1 | 1.5 MB | 1.5 MB |
+
+The whole release is 28,922 files / ~131 MiB. Never fetch it on startup. Fetch the pointer, the
+release manifest, the bucket manifest for the record you need, then the record. Cache releases by
+`releaseId`; they never change.
+
+A committed, self-consistent sample is in [`fixtures/v1/`](../fixtures/v1/README.md); CI validates
+it with the same command.
 
 ## 8. Compatibility and migration
 
@@ -161,6 +175,8 @@ fetch the whole tree on startup.
 
 - No first-class manga catalogue, characters/staff, trailers or localized synopses beyond the
   Bangumi aliases present in anime detail.
+- TMDB and TVDB ids in v1 identify the series, not a season. Per-season TVDB numbering remains in
+  the legacy `data/id-map.json` (`tvdb_season`) until it is added to a v1 minor version.
 - Synonyms come only from source-stated AniList/Bangumi names; no translation or romanisation is
   invented.
 - Episode raw source ordinals and season numbers are not exposed.
