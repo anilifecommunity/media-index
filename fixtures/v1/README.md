@@ -7,7 +7,6 @@ python scripts/build_release.py \
   --out build/fixtures \
   --limit 5 \
   --publish \
-  --allow-unverified-sources \
   --generated-at 2026-11-17T00:00:00Z \
   --published-at 2026-11-17T00:00:00Z
 ```
@@ -17,7 +16,7 @@ same manifest/pointer/bucket-manifest layout as a full release:
 
 ```
 manifest.json
-releases/rel-10d0b9b9c84f4a0e/
+releases/rel-1394a0a5048fe3f8/
   manifest.json
   catalog/{00..63}.json      # only non-empty shards
   search/universal/*.json
@@ -41,6 +40,7 @@ Notes for consumers:
   edges outside the first five ids are `resolved: false`. Do not infer catalogue completeness from
   its counts.
 - Media keys are `al-<anilistId>`; paths and hashes are real.
-- Source rights are unverified. `--allow-unverified-sources` only allowed this staging build; it is
-  not a publication approval. See `docs/SOURCE-POLICY.md`.
+- Records carry `provenance.source`; the release manifest carries `generatedAt` and per-source
+  `lastUpdated`. There is deliberately no volatile per-record timestamp.
+- Source rights are owner-approved for the existing scope. See `docs/SOURCE-POLICY.md`.
 - Do not edit these files by hand. Rebuild them with the command above when the schema changes.

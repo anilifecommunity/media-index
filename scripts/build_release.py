@@ -160,7 +160,6 @@ def _build_into(
             detail,
             row,
             ids=ids,
-            updated_at=updated_at,
             episodes_available=bool(episode_rows),
             known_anime=known_anime,
         )
@@ -179,7 +178,6 @@ def _build_into(
             episode_record = lib.build_episode_record(
                 key,
                 episode_rows,
-                updated_at=updated_at,
                 match_confidence=ids.get("confidence"),
             )
             episode_path = staging / "episodes" / bucket / f"{key}.json"

@@ -8,6 +8,9 @@
   `releases/rel-<content-hash>/` plus the atomic `manifest.json` alongside `data/`. Retention is
   two releases; only the pointer is purged on jsDelivr.
 - `permissionReference` is recorded in the release manifest's source status.
+- Freshly emitted records no longer carry a volatile per-record build timestamp. `provenance.source`
+  stays; the release manifest carries `generatedAt` and per-source `lastUpdated`. This keeps an
+  unchanged catalogue byte-identical so the content-addressed release is reused.
 
 ### Changed
 

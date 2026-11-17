@@ -103,8 +103,10 @@ endpoint list in the handoff.
 - Images are references with `source`, `kind`, `permission: "reference-only"` and attribution.
   There is no guaranteed offline mirror. Supply a local placeholder when a host fails; never imply
   the URL is owned by Anilife.
-- `provenance.updatedAt` is the generation time of the record's source snapshot, not a promise of
-  live data. Dynamic rankings are snapshot ranks.
+- `provenance.source` names where a record came from. The **release** carries the snapshot time in
+  `generatedAt` and `sources[].lastUpdated`; per-record `updatedAt` is omitted because the current
+  sources do not expose a reliable per-record timestamp, and inventing one would be dishonest.
+  Dynamic rankings are snapshot ranks.
 
 ## 5. Search
 
