@@ -120,6 +120,7 @@ def _build_into(
     generated_at: str,
 ) -> dict:
     content_files: list[dict] = []
+    aux_files: list[dict] = []
     media_manifest: dict[str, list[dict]] = {}
     episode_manifest: dict[str, list[dict]] = {}
     catalog_rows: dict[int, list[dict]] = {shard: [] for shard in range(lib.CATALOG_SHARDS)}
@@ -140,6 +141,21 @@ def _build_into(
         size, digest = _write(path, payload)
         relative = path.relative_to(staging).as_posix()
         content_files.append({"path": relative, "bytes": size, "sha256": digest})
+
+    def record_aux_bytes(dest: str, data: bytes) -> None:
+        path = staging / dest
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        entry = {"path": dest, "bytes": len(data), "sha256": lib.sha256_hex(data)}
+        aux_files.append(entry)
+        content_files.append(entry)
+
+    def copy_aux(source: pathlib.Path, dest: str) -> None:
+        if source.is_file():
+            record_aux_bytes(dest, source.read_bytes())
+
+    def record_aux_json(dest: str, payload) -> None:
+        record_aux_bytes(dest, lib.canonical_bytes(payload))
 
     for position, row in enumerate(rows, start=1):
         anilist_id = int(row["id"])
@@ -278,6 +294,109 @@ def _build_into(
         },
     )
 
+    all_catalog = [row for shard_rows in catalog_rows.values() for row in shard_rows]
+
+    def compact(row: dict) -> dict:
+        return {
+            "mediaKey": row["mediaKey"],
+            "anilistId": row["ids"]["anilist"],
+            "titles": row["titles"],
+            "poster": row["poster"],
+            "year": row["seasonYear"],
+            "format": row["format"],
+            "status": row["status"],
+            "episodes": row["episodes"],
+            "episodesAvailable": row["episodesAvailable"],
+            "score": row["score"],
+            "popularity": row["popularity"],
+            "genres": row["genres"],
+            "isAdult": row["isAdult"],
+            "visibility": row["visibility"],
+        }
+
+    browse = [compact(row) for row in all_catalog]
+
+    def popularity(row: dict) -> int:
+        return row["popularity"] or 0
+
+    def score_of(row: dict) -> int:
+        return row["score"] if row["score"] is not None else -1
+
+    popular = sorted(browse, key=lambda row: (-popularity(row), row["mediaKey"]))
+    top_rated = sorted(browse, key=lambda row: (-score_of(row), -popularity(row), row["mediaKey"]))
+    newest = sorted(browse, key=lambda row: (-(row["year"] or 0), -popularity(row), row["mediaKey"]))
+    upcoming = [row for row in popular if row["status"] == "NOT_YET_RELEASED"]
+    movies = [row for row in popular if row["format"] == "MOVIE"]
+    releasing = [row for row in popular if row["status"] == "RELEASING"]
+    season_year = max((row["year"] or 0 for row in releasing), default=0)
+    season = [row for row in popular if row["status"] == "RELEASING" and (row["year"] or 0) == season_year]
+
+    home_rows = {
+        "spotlight": popular[:5],
+        "trending": releasing[:30],
+        "popular": popular[:30],
+        "topRated": top_rated[:30],
+        "season": season[:30],
+        "newest": newest[:30],
+        "upcoming": upcoming[:30],
+        "movies": movies[:30],
+    }
+    record(
+        staging / "catalog" / "home.json",
+        {
+            "schemaVersion": lib.SCHEMA_VERSION,
+            "generatedAt": updated_at,
+            "rows": home_rows,
+        },
+    )
+    home_entry = content_files[-1]
+    record(
+        staging / "catalog" / "browse.json",
+        {
+            "schemaVersion": lib.SCHEMA_VERSION,
+            "generatedAt": updated_at,
+            "rows": popular,
+        },
+    )
+    browse_entry = content_files[-1]
+
+    # Auxiliary surfaces the clients already read from the legacy tree. They stay verbatim because
+    # their shapes are already consumed in production; the release manifest pins their hashes.
+    copy_aux(data_dir / "dub-index.json", "dub/index.json")
+    copy_aux(data_dir / "dub-episodes.json", "dub/episodes.json")
+    copy_aux(data_dir / "filler-index.json", "filler/index.json")
+    copy_aux(data_dir / "backdrops.json", "backdrops.json")
+    copy_aux(data_dir / "airing.json", "airing.json")
+    copy_aux(data_dir / "recs" / "neighbours-v1.tsv.gz", "recommendations/neighbours-v1.tsv.gz")
+
+    for schedule in sorted((data_dir / "schedule").glob("*.json")):
+        copy_aux(schedule, f"schedule/{schedule.name}")
+    selected_ids = {int(row["id"]) for row in rows}
+    for skip in sorted((data_dir / "skip").rglob("*.json")):
+        if skip.stem.isdigit() and int(skip.stem) not in selected_ids:
+            continue
+        copy_aux(skip, f"skip/{skip.relative_to(data_dir / 'skip').as_posix()}")
+    for lili in sorted((data_dir / "anime").rglob("lili.json")):
+        relative = lili.relative_to(data_dir / "anime")
+        if len(relative.parts) == 3:
+            shard, media_id, _ = relative.parts
+            if media_id.isdigit() and int(media_id) not in selected_ids:
+                continue
+            copy_aux(lili, f"sources/lili/{shard}/{media_id}.json")
+
+    genres_path = data_dir / "genres.json"
+    years_path = data_dir / "years.json"
+    record_aux_json(
+        "facets.json",
+        {
+            "genres": _load_json(genres_path) if genres_path.is_file() else [],
+            "years": _load_json(years_path) if years_path.is_file() else [],
+            "formats": sorted({row["format"] for row in browse if row["format"]}),
+            "statuses": sorted({row["status"] for row in browse if row["status"]}),
+        },
+    )
+
+    aux_files.sort(key=lambda item: item["path"])
     content_files.sort(key=lambda item: item["path"])
     content_digest = lib.sha256_hex(
         "\n".join(f"{item['path']}\0{item['sha256']}" for item in content_files).encode("utf-8")
@@ -303,6 +422,7 @@ def _build_into(
                 }
             )
 
+    counts["auxFiles"] = len(aux_files)
     release_manifest = {
         "schemaVersion": lib.SCHEMA_VERSION,
         "contract": lib.CONTRACT,
@@ -312,14 +432,22 @@ def _build_into(
         "counts": counts,
         "sources": source_status(policy, updated_at),
         "catalog": {
-            "files": [item for item in content_files if item["path"].startswith("catalog/")]
+            "files": [
+                item
+                for item in content_files
+                if item["path"].startswith("catalog/")
+                and item["path"] not in ("catalog/home.json", "catalog/browse.json")
+            ]
         },
+        "home": home_entry,
+        "browse": browse_entry,
         "search": {
             "files": [item for item in content_files if item["path"].startswith("search/")]
         },
         "ids": {
             "files": [item for item in content_files if item["path"].startswith("ids/")]
         },
+        "aux": {"files": aux_files},
         "identity": {
             "ledger": next(
                 dict(item) for item in content_files if item["path"] == "identity/ledger.json"

@@ -13,9 +13,12 @@
     "counts",
     "sources",
     "catalog",
+    "home",
+    "browse",
     "search",
     "identity",
     "ids",
+    "aux",
     "manifests"
   ],
   "additionalProperties": false,
@@ -27,14 +30,15 @@
     "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "counts": {
       "type": "object",
-      "required": ["media", "episodeLists", "relations", "adult"],
+      "required": ["media", "episodeLists", "relations", "adult", "auxFiles"],
       "additionalProperties": false,
       "properties": {
         "media": { "type": "integer", "minimum": 0 },
         "episodeLists": { "type": "integer", "minimum": 0 },
         "episodes": { "type": "integer", "minimum": 0 },
         "relations": { "type": "integer", "minimum": 0 },
-        "adult": { "type": "integer", "minimum": 0 }
+        "adult": { "type": "integer", "minimum": 0 },
+        "auxFiles": { "type": "integer", "minimum": 0 }
       }
     },
     "sources": {
@@ -53,8 +57,11 @@
       }
     },
     "catalog": { "$ref": "#/$defs/fileList" },
+    "home": { "$ref": "#/$defs/file" },
+    "browse": { "$ref": "#/$defs/file" },
     "search": { "$ref": "#/$defs/fileList" },
     "ids": { "$ref": "#/$defs/fileList" },
+    "aux": { "$ref": "#/$defs/fileList" },
     "identity": {
       "type": "object",
       "required": ["ledger"],

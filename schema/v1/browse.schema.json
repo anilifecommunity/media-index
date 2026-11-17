@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v1/browse.schema.json",
+  "title": "Anilife browse catalogue v1",
+  "description": "Every catalogue row in one compact file, sorted for stable client-side filtering.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "rows": { "type": "array", "items": { "$ref": "compact-row.schema.json" } }
+  }
+}

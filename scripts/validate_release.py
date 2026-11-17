@@ -27,6 +27,9 @@ REQUIRED_SCHEMAS = {
     "bucket": "bucket-manifest.schema.json",
     "release": "release-manifest.schema.json",
     "pointer": "pointer.schema.json",
+    "compact": "compact-row.schema.json",
+    "home": "home.schema.json",
+    "browse": "browse.schema.json",
 }
 
 
@@ -92,10 +95,20 @@ def _validate_schemas(root: pathlib.Path, release_dir: pathlib.Path, release: di
         raise VerificationError("--schemas requires jsonschema (pip install jsonschema)") from exc
 
     schema_dir = ROOT / "schema" / "v1"
+    schemas = {label: _load(schema_dir / filename) for label, filename in REQUIRED_SCHEMAS.items()}
+    from referencing import Registry, Resource  # type: ignore
+    from referencing.jsonschema import DRAFT202012  # type: ignore
+
+    registry = Registry().with_resources(
+        [
+            (schema["$id"], Resource.from_contents(schema, default_specification=DRAFT202012))
+            for schema in schemas.values()
+            if "$id" in schema
+        ]
+    )
     loaded = {}
-    for label, filename in REQUIRED_SCHEMAS.items():
-        schema = _load(schema_dir / filename)
-        validator = jsonschema.Draft202012Validator(schema)
+    for label, schema in schemas.items():
+        validator = jsonschema.Draft202012Validator(schema, registry=registry)
         validator.check_schema(schema)
         loaded[label] = validator
 
@@ -118,6 +131,8 @@ def _validate_schemas(root: pathlib.Path, release_dir: pathlib.Path, release: di
         check("catalog", _load(release_dir / item["path"]))
     for item in release["search"]["files"]:
         check("search", _load(release_dir / item["path"]))
+    check("home", _load(release_dir / release["home"]["path"]))
+    check("browse", _load(release_dir / release["browse"]["path"]))
     check("media", _load(release_dir / _first_media(release_dir, release)[0]))
     check("episodes", _load(release_dir / _first_episode(release_dir, release)))
     pointer = root / "manifest.json"
@@ -175,6 +190,9 @@ def verify_release(
     content.extend(release["catalog"]["files"])
     content.extend(release["search"]["files"])
     content.extend(release["ids"]["files"])
+    content.extend(release["aux"]["files"])
+    content.append(release["home"])
+    content.append(release["browse"])
     content.append(release["identity"]["ledger"])
 
     media_entries: list[dict] = []

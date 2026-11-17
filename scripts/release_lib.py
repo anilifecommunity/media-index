@@ -192,6 +192,17 @@ def build_media_record(
                 "mediaKey": media_key(int(node_id)) if resolved else None,
                 "resolved": resolved,
                 "name": (node.get("title") or {}).get("romaji"),
+                "node": {
+                    "id": int(node_id),
+                    "idMal": node.get("idMal"),
+                    "title": node.get("title"),
+                    "format": node.get("format"),
+                    "countryOfOrigin": node.get("countryOfOrigin"),
+                    "description": clean_text(node.get("description")),
+                    "poster": (node.get("coverImage") or {}).get("large"),
+                    "isAdult": node.get("isAdult"),
+                    "episodes": node.get("episodes"),
+                },
             }
         )
 
@@ -206,12 +217,15 @@ def build_media_record(
                 "ids": {"anilist": int(node_id)},
                 "mediaKey": media_key(int(node_id)) if resolved else None,
                 "resolved": resolved,
+                "card": node,
             }
         )
 
     series: list[str] = []
+    series_ids: list[int] = []
     for value in detail.get("series") or []:
         try:
+            series_ids.append(int(value))
             series.append(media_key(int(value)))
         except (TypeError, ValueError):
             continue
@@ -310,6 +324,12 @@ def build_media_record(
         "relations": relations,
         "recommendations": recommendations,
         "series": series,
+        "seriesIds": series_ids,
+        "anilist": anilist or None,
+        "trailer": anilist.get("trailer"),
+        "nextAiringEpisode": anilist.get("nextAiringEpisode"),
+        "meanScore": anilist.get("meanScore"),
+        "favourites": anilist.get("favourites"),
         "bangumi": bangumi_record,
         "provenance": {
             "source": "anilist+tmdb",
