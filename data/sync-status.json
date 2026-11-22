@@ -1,1 +1,1 @@
-{"source":"anilist+tmdb","generator":"scripts/konoha_build.py","last_updated":"2026-11-21T13:39:38.124816Z","schema":2,"sources":{"anilist":{"last_updated":"2026-11-21T13:38:46Z"},"tmdb":{"last_updated":"2026-11-21T13:39:35Z"}},"counts":{"titles":20934,"episodes":160008,"mappings":20934}}
+{"source":"anilist+tmdb","generator":"scripts/konoha_build.py","last_updated":"2026-11-22T13:31:15.570192Z","schema":2,"sources":{"anilist":{"last_updated":"2026-11-22T13:30:23Z"},"tmdb":{"last_updated":"2026-11-22T13:31:12Z"}},"counts":{"titles":20938,"episodes":160069,"mappings":20938}}
