@@ -35,6 +35,7 @@ jobs:
           python scripts/test_konoha_build.py
           python scripts/test_recs_build.py
           python scripts/test_franchise.py
+          python scripts/test_media_identity_v2.py
 
       - name: Release contract tests
         run: |
