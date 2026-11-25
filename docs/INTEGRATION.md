@@ -217,3 +217,19 @@ Display the source attribution for any metadata or artwork shown: AniList, TMDB 
 the TMDB API but is not endorsed or certified by TMDB"), Bangumi and AniZip where their fields are
 used. Keep the attribution text in the app's about/licenses screen and next to imagery where the
 provider requires it.
+
+## 11. Continuation coverage for 2.0 clients
+
+The updated legacy detail generator retains `series` as an array of AniList anime IDs. It builds an undirected membership graph from explicit PREQUEL/SEQUEL edges once per catalogue, so a missing inverse edge cannot make different entry points disagree. It retains specials and films in that membership; clients decide their display group separately. Alternative, adaptation and side-story edges do not join the continuation graph.
+
+Generated detail records also carry `seriesCoverage`:
+
+```json
+{"coverage":"complete","unresolvedIds":[],"truncated":false}
+```
+
+`partial` means a known member lacks relation hydration or the 16-entry/eight-hop bound prevented expansion. Known missing members remain in `series`; metadata/source failure must not erase membership. Cache a partial answer for its requested entry only as provisional data, never as complete membership under every returned member. An absent coverage field in an older detail is unknown, not complete. Completeness describes the captured catalogue, not an assurance that the upstream catalogue is exhaustive or a source is playable.
+
+Age filtering belongs after membership/cache lookup. Keep each selected member's original media ID and each episode's identity; the two AoT final specials both having an episode 1 does not merge their progress. No old IDs, root v1 pointer or immutable v1 release paths change. The existing v1 normalized contract remains unchanged; broader typed v2 identities are a separate contract task.
+
+Run `python scripts/test_franchise.py` for the captured Steel Ball Run/AoT cases, inverse/cycle/partial/bounds policy and actual legacy generator output. `fixtures/v2/franchise-capture.json` includes the source query and capture timestamp. It is an offline regression fixture, not a production v2 release.

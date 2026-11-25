@@ -12,6 +12,7 @@ import pathlib
 import sys
 import tempfile
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 import publish_health as health
 import release_lib as lib
@@ -99,7 +100,8 @@ def main() -> int:
 
         blocked = run(data, policy_file(root, name="unverified.json"), now=now)
         check("blocked state", blocked["state"], "blocked")
-        with contextlib.redirect_stdout(io.StringIO()):
+        with contextlib.redirect_stdout(io.StringIO()), patch.object(health, "datetime", wraps=datetime) as clock:
+            clock.now.return_value = now
             allowed_code = health.main(
                 [
                     "--data",

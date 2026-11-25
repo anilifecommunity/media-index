@@ -51,6 +51,8 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
+from franchise import continuation_graph, membership
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORK = ROOT / "build" / "konoha"
 CATALOG_FILE = WORK / "catalog.json"
@@ -1941,49 +1943,6 @@ def _fetched_at(name: str, fallback: str) -> str:
 
 
 # The app's own season-chain limits (MiruroRepository.MAX_SERIES_ENTRIES / MAX_SERIES_DEPTH).
-MAX_SERIES_ENTRIES = 16
-MAX_SERIES_DEPTH = 8
-
-
-def season_neighbors(entry: dict) -> list[int]:
-    """PREQUEL and SEQUEL relations, as `Media.seasonNeighbors` reads them in the app."""
-    ids: list[int] = []
-    for edge in ((entry.get("relations") or {}).get("edges") or []):
-        node = edge.get("node") or {}
-        if edge.get("relationType") in ("PREQUEL", "SEQUEL") and node.get("id") and node["id"] not in ids:
-            ids.append(node["id"])
-    return ids
-
-
-def series_chain(root_id: int, by_id: dict[int, dict]) -> list[int]:
-    """Every season reachable through prequel/sequel links, walked the way the app walks it.
-
-    A port of `walkSeriesChain`: breadth first from the title, at most MAX_SERIES_ENTRIES entries
-    and MAX_SERIES_DEPTH hops. The app used to do this one AniList request per season on every cold
-    open of a franchise; it is the same walk over the catalogue already in memory. Adult filtering
-    and airing order stay on the device, which knows the viewer's setting.
-    """
-    found = [root_id]
-    expanded: set[int] = set()
-    frontier = [root_id]
-    depth = 0
-    while frontier and len(found) < MAX_SERIES_ENTRIES and depth < MAX_SERIES_DEPTH:
-        batch = [i for i in frontier if i not in expanded][: MAX_SERIES_ENTRIES - len(found) + 1]
-        expanded.update(batch)
-        if not batch:
-            break
-        nxt: list[int] = []
-        for media_id in batch:
-            for neighbor in season_neighbors(by_id.get(media_id) or {}):
-                if neighbor not in found and len(found) < MAX_SERIES_ENTRIES:
-                    found.append(neighbor)
-                if neighbor not in expanded and neighbor not in nxt:
-                    nxt.append(neighbor)
-        frontier = nxt
-        depth += 1
-    return found
-
-
 def app_record(entry: dict) -> dict:
     """The AniList record in the shape the app's `Media` decodes, minus what the tree says elsewhere.
 
@@ -2038,6 +1997,7 @@ def cmd_emit(args: argparse.Namespace) -> int:
     episode_count = 0
 
     by_id = {entry["id"]: entry for entry in catalog}
+    graph = continuation_graph(by_id)
     for entry in catalog:
         anilist_id = entry["id"]
         titles = entry.get("title") or {}
@@ -2103,7 +2063,9 @@ def cmd_emit(args: argparse.Namespace) -> int:
         # relations, and a chain built from it would be every title alone.
         if "relations" in entry:
             detail["anilist"] = app_record(entry)
-            detail["series"] = series_chain(anilist_id, by_id)
+            franchise = membership(anilist_id, by_id, graph)
+            detail["series"] = franchise["memberIds"]
+            detail["seriesCoverage"] = {key: value for key, value in franchise.items() if key != "memberIds"}
             detail["recommendations"] = recommendation_nodes(entry)
         # Written only when there is one. An absent key and a null both read as "no logo" to the
         # app, and the tree is served to every device on every title page — a null per title is

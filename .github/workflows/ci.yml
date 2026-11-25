@@ -6,6 +6,7 @@ on:
     paths:
       - "scripts/**"
       - "schema/**"
+      - "fixtures/**"
       - "policy/**"
       - "docs/**"
       - ".github/workflows/**"
@@ -33,6 +34,7 @@ jobs:
         run: |
           python scripts/test_konoha_build.py
           python scripts/test_recs_build.py
+          python scripts/test_franchise.py
 
       - name: Release contract tests
         run: |
