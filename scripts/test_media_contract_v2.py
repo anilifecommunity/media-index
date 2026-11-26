@@ -81,6 +81,8 @@ for page in pages:
     assert len(v2.canonical_bytes(page)) <= v2.MAX_FILE_BYTES
 refused(lambda: v2.unit_pages(ref, "chapters", "partial", [{**unit, "title": "x" * v2.MAX_FILE_BYTES}]))
 refused(lambda: v2.validate_record({**chapters, "units": [unit, unit]}, checks))
+for nonfinite in (float("nan"), float("inf"), float("-inf")):
+    refused(lambda: v2.validate_record({**chapters, "units": [{**unit, "rating": nonfinite}]}, checks))
 refused(lambda: v2.validate_record({**chapters, "ref": {"kind": "TV", "mediaKey": "tmdb-tv-42"}}, checks))
 refused(lambda: v2.validate_record({**chapters, "units": [{**unit, "unitId": "https://host/stream?token=x"}]}, checks))
 
