@@ -110,6 +110,8 @@ def validate_ref(ref: dict) -> None:
         raise ValueError("Anime identity cannot carry a reading format")
     if kind == "MANGA" and ref.get("format") == "NOVEL":
         raise ValueError("Known AniList novels require the explicit NOVEL projection")
+    if kind == "NOVEL" and key.startswith("al-") and ref.get("format") != "NOVEL":
+        raise ValueError("AniList novel identity needs explicit format evidence")
 
 
 def append_alias_ledger(previous: list[dict], additions: list[dict]) -> list[dict]:

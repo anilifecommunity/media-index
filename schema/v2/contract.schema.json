@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v2/contract.schema.json",
+  "title": "Anilife metadata, units and immutable snapshots v2",
+  "oneOf": [{"$ref":"#/$defs/detail"},{"$ref":"#/$defs/catalogue"},{"$ref":"#/$defs/search"},{"$ref":"#/$defs/episodes"},{"$ref":"#/$defs/chapters"},{"$ref":"#/$defs/bucket"},{"$ref":"#/$defs/manifest"},{"$ref":"#/$defs/pointer"}],
+  "$defs": {
+    "version": {"const":"2.0.0"},
+    "target": {"$ref":"media-ref.schema.json#/$defs/target"},
+    "provenance": {"$ref":"media-ref.schema.json#/$defs/provenance"},
+    "coverage": {"enum":["complete","partial","unresolved"]},
+    "visibility": {"enum":["general","adult","unknown-conservative"]},
+    "text": {"type":["string","null"],"maxLength":65536},
+    "ordinal": {"type":["string","null"],"pattern":"^-?[0-9]+(?:\\.[0-9]+)?$","maxLength":64},
+    "path": {"type":"string","maxLength":256,"pattern":"^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9_./-]+$"},
+    "file": {
+      "type":"object","additionalProperties":false,"required":["path","sha256","bytes"],
+      "properties":{"path":{"$ref":"#/$defs/path"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"bytes":{"type":"integer","minimum":1,"maximum":2097152}}
+    },
+    "titles": {
+      "type":"object","additionalProperties":false,"required":["display"],
+      "properties":{"display":{"type":"string","minLength":1,"maxLength":1024},"english":{"$ref":"#/$defs/text"},"romaji":{"$ref":"#/$defs/text"},"native":{"$ref":"#/$defs/text"},"synonyms":{"allOf":[{"$ref":"../v1/media.schema.json#/properties/titles/properties/synonyms"},{"maxItems":128}]}}
+    },
+    "relation": {
+      "type":"object","additionalProperties":false,"required":["relationType","related","resolved","confidence","provenance"],
+      "properties":{
+        "relationType":{"type":"string","minLength":1,"maxLength":32},
+        "related":{"oneOf":[{"$ref":"media-ref.schema.json"},{"type":"object","additionalProperties":false,"required":["kind","mediaKey","aliases"],"properties":{"kind":{"type":["string","null"],"enum":["ANIME","MOVIE","TV","MANGA","COMIC","NOVEL",null]},"mediaKey":{"type":"null"},"aliases":{"type":"array","maxItems":32,"items":{"$ref":"media-ref.schema.json#/$defs/alias"}}}}]},
+        "resolved":{"type":"boolean"},"confidence":{"enum":["verified","unresolved"]},"provenance":{"$ref":"#/$defs/provenance"}
+      }
+    },
+    "franchise": {
+      "type":"object","additionalProperties":false,"required":["coverage","members","unresolved","truncated"],
+      "properties":{
+        "coverage":{"$ref":"#/$defs/coverage"},"truncated":{"type":"boolean"},
+        "unresolved":{"type":"array","maxItems":16,"items":{"$ref":"#/$defs/target"}},
+        "members":{"type":"array","minItems":1,"maxItems":16,"items":{
+          "type":"object","additionalProperties":false,"required":["ref","order","role","sourceSeason","absoluteOrdinal","provenance"],
+          "properties":{"ref":{"$ref":"#/$defs/target"},"order":{"type":"integer","minimum":0,"maximum":15},"role":{"enum":["SEASON","PART","FILM","SPECIAL","UNKNOWN"]},"sourceSeason":{"type":["integer","null"],"minimum":0},"absoluteOrdinal":{"$ref":"#/$defs/ordinal"},"provenance":{"$ref":"#/$defs/provenance"}}
+        }}
+      }
+    },
+    "detail": {
+      "type":"object","additionalProperties":false,"required":["schemaVersion","recordType","ref","titles","status","isAdult","visibility","relations","franchise","unitPages","provenance"],
+      "properties":{
+        "schemaVersion":{"$ref":"#/$defs/version"},"recordType":{"const":"detail"},"ref":{"$ref":"media-ref.schema.json"},
+        "titles":{"$ref":"#/$defs/titles"},"status":{"type":["string","null"],"maxLength":32},"synopsis":{"$ref":"#/$defs/text"},
+        "season":{"type":["string","null"],"maxLength":16},"seasonYear":{"type":["integer","null"],"minimum":1800,"maximum":9999},
+        "startDate":{"$ref":"../v1/media.schema.json#/$defs/partialDate"},"endDate":{"$ref":"../v1/media.schema.json#/$defs/partialDate"},
+        "declaredUnitCount":{"type":["integer","null"],"minimum":0,"maximum":1000000},"durationMinutes":{"type":["integer","null"],"minimum":0,"maximum":100000},
+        "studios":{"type":"array","maxItems":64,"items":{"$ref":"../v1/media.schema.json#/properties/studios/items"}},
+        "score":{"$ref":"../v1/media.schema.json#/properties/score"},
+        "nextAiringEpisode":{"type":["object","null"],"additionalProperties":false,"required":["airingAt","episode"],"properties":{"airingAt":{"type":"integer","minimum":0},"episode":{"type":"integer","minimum":1},"timeUntilAiring":{"type":"integer"}}},
+        "isAdult":{"type":["boolean","null"]},"visibility":{"$ref":"#/$defs/visibility"},
+        "images":{"type":"object","maxProperties":3,"propertyNames":{"enum":["poster","banner","logo"]},"additionalProperties":{"$ref":"../v1/media.schema.json#/$defs/image"}},
+        "genres":{"type":"array","maxItems":64,"items":{"type":"string","maxLength":128}},
+        "relations":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/relation"}},"franchise":{"$ref":"#/$defs/franchise"},
+        "unitPages":{"type":"object","additionalProperties":false,"required":["coverage","pages"],"properties":{"coverage":{"$ref":"#/$defs/coverage"},"pages":{"type":"array","maxItems":1024,"items":{"$ref":"#/$defs/file"}}}},
+        "provenance":{"$ref":"#/$defs/provenance"}
+      }
+    },
+    "row": {
+      "type":"object","additionalProperties":false,"required":["ref","title","format","visibility","poster"],
+      "properties":{"ref":{"$ref":"#/$defs/target"},"title":{"type":"string","minLength":1,"maxLength":1024},"format":{"type":["string","null"],"maxLength":32},"visibility":{"$ref":"#/$defs/visibility"},"poster":{"oneOf":[{"type":"null"},{"$ref":"../v1/media.schema.json#/$defs/image"}]}}
+    },
+    "catalogue": {
+      "type":"object","additionalProperties":false,"required":["schemaVersion","recordType","coverage","rows"],
+      "properties":{"schemaVersion":{"$ref":"#/$defs/version"},"recordType":{"const":"catalogue"},"coverage":{"$ref":"#/$defs/coverage"},"rows":{"type":"array","maxItems":1000,"items":{"$ref":"#/$defs/row"}}}
+    },
+    "search": {
+      "type":"object","additionalProperties":false,"required":["schemaVersion","recordType","coverage","entries"],
+      "properties":{"schemaVersion":{"$ref":"#/$defs/version"},"recordType":{"const":"search"},"coverage":{"$ref":"#/$defs/coverage"},"entries":{"type":"array","maxItems":1000,"items":{"type":"object","additionalProperties":false,"required":["ref","tokens"],"properties":{"ref":{"$ref":"#/$defs/target"},"tokens":{"type":"array","maxItems":256,"items":{"type":"string","maxLength":1024}}}}}}
+    },
+    "unit": {
+      "type":"object","additionalProperties":false,"required":["unitId","displayOrdinal","sourceOrdinal","sourceSeason","absoluteOrdinal","title","availability","provenance"],
+      "properties":{
+        "unitId":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"},"displayOrdinal":{"$ref":"#/$defs/ordinal"},"sourceOrdinal":{"type":["string","null"],"maxLength":128},"sourceSeason":{"type":["integer","null"],"minimum":0},"absoluteOrdinal":{"$ref":"#/$defs/ordinal"},
+        "title":{"$ref":"#/$defs/text"},"availability":{"enum":["available","announced","unknown"]},"provenance":{"$ref":"#/$defs/provenance"},
+        "airDate":{"type":["string","null"],"format":"date"},"pageCount":{"type":["integer","null"],"minimum":0,"maximum":100000},"volume":{"type":["string","null"],"maxLength":64},
+        "still":{"$ref":"../v1/episodes.schema.json#/properties/episodes/items/properties/still"},"runtimeMinutes":{"type":["integer","null"],"minimum":0},"rating":{"type":["number","null"]},"synopsis":{"$ref":"#/$defs/text"}
+      }
+    },
+    "episodes": {
+      "type":"object","additionalProperties":false,"required":["schemaVersion","recordType","ref","coverage","offset","units"],
+      "properties":{"schemaVersion":{"$ref":"#/$defs/version"},"recordType":{"const":"episodes"},"ref":{"allOf":[{"$ref":"#/$defs/target"},{"properties":{"kind":{"enum":["ANIME","MOVIE","TV"]}}}]},"coverage":{"$ref":"#/$defs/coverage"},"offset":{"type":"integer","minimum":0},"units":{"type":"array","maxItems":500,"items":{"$ref":"#/$defs/unit"}}}
+    },
+    "chapters": {
+      "type":"object","additionalProperties":false,"required":["schemaVersion","recordType","ref","coverage","offset","units"],
+      "properties":{"schemaVersion":{"$ref":"#/$defs/version"},"recordType":{"const":"chapters"},"ref":{"allOf":[{"$ref":"#/$defs/target"},{"properties":{"kind":{"enum":["MANGA","COMIC","NOVEL"]}}}]},"coverage":{"$ref":"#/$defs/coverage"},"offset":{"type":"integer","minimum":0},"units":{"type":"array","maxItems":500,"items":{"$ref":"#/$defs/unit"}}}
+    },
+    "bucket": {
+      "type":"object","additionalProperties":false,"required":["schemaVersion","recordType","bucket","files"],
+      "properties":{"schemaVersion":{"$ref":"#/$defs/version"},"recordType":{"const":"bucket"},"bucket":{"type":"string","pattern":"^[0-9a-f]{2}$"},"files":{"type":"array","maxItems":2048,"items":{"$ref":"#/$defs/file"}}}
+    },
+    "bootstrap": {
+      "type":"object","additionalProperties":false,"required":["catalogue","search","identity"],
+      "properties":{"catalogue":{"type":"array","maxItems":64,"items":{"$ref":"#/$defs/file"}},"search":{"type":"array","maxItems":64,"items":{"$ref":"#/$defs/file"}},"identity":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/file"}}}
+    },
+    "manifest": {
+      "type":"object","additionalProperties":false,"required":["schemaVersion","recordType","contract","releaseId","contentHash","generatedAt","coverage","buckets","bootstrap"],
+      "properties":{"schemaVersion":{"$ref":"#/$defs/version"},"recordType":{"const":"manifest"},"contract":{"const":"anilife.media"},"releaseId":{"type":"string","pattern":"^rel-[0-9a-f]{16}$"},"contentHash":{"type":"string","pattern":"^[0-9a-f]{64}$"},"generatedAt":{"type":"string","format":"date-time"},"coverage":{"type":"object","additionalProperties":{"$ref":"#/$defs/coverage"},"propertyNames":{"enum":["ANIME","MOVIE","TV","MANGA","COMIC","NOVEL"]},"minProperties":6,"maxProperties":6},"buckets":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/file"}},"bootstrap":{"$ref":"#/$defs/bootstrap"}}
+    },
+    "pointer": {
+      "type":"object","additionalProperties":false,"required":["schemaVersion","recordType","releaseId","manifest"],
+      "properties":{"schemaVersion":{"$ref":"#/$defs/version"},"recordType":{"const":"pointer"},"releaseId":{"type":"string","pattern":"^rel-[0-9a-f]{16}$"},"manifest":{"$ref":"#/$defs/file"}}
+    }
+  }
+}

@@ -17,6 +17,10 @@
      "else": {"properties": {"aliases": {"contains": {"required": ["verified"], "properties": {"verified": {"const": true}}}}}}}
   ],
   "$defs": {
+    "target": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "mediaKey"],
+      "properties": {"kind": {"$ref": "#/properties/kind"}, "mediaKey": {"$ref": "#/properties/mediaKey"}}
+    },
     "provenance": {
       "type": "object", "additionalProperties": false, "required": ["source"],
       "properties": {"source": {"type": "string", "minLength": 1, "maxLength": 128}, "capturedAt": {"type": "string", "format": "date-time"}}
