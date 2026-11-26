@@ -86,11 +86,30 @@ def adapt_v1_episodes(record: dict, declared_count: int | None) -> list[dict]:
                 unit[key] = episode[key]
         units.append(unit)
     coverage = "unresolved" if record["availability"] != "AVAILABLE" else "complete" if declared_count == len(units) else "partial"
+    return unit_pages(ref, "episodes", coverage, units)
+
+
+def unit_pages(ref: dict, record_type: str, coverage: str, units: list[dict]) -> list[dict]:
+    if record_type not in ("episodes", "chapters"):
+        raise ValueError("Unknown unit-page type")
+    def empty_page(offset: int) -> dict:
+        return {"schemaVersion": VERSION, "recordType": record_type, "ref": ref,
+                "coverage": coverage, "offset": offset, "units": []}
     pages = []
-    for offset in range(0, max(len(units), 1), 500):
-        pages.append({"schemaVersion": VERSION, "recordType": "episodes", "ref": ref,
-                      "coverage": coverage,
-                      "offset": offset, "units": units[offset:offset + 500]})
+    page = empty_page(0)
+    size = len(canonical_bytes(page))
+    for unit in units:
+        unit_size = len(canonical_bytes(unit))
+        if page["units"] and (len(page["units"]) >= 500 or size + unit_size + 1 > MAX_FILE_BYTES):
+            pages.append(page)
+            page = empty_page(page["offset"] + len(page["units"]))
+            size = len(canonical_bytes(page))
+        addition = unit_size + (1 if page["units"] else 0)
+        if size + addition > MAX_FILE_BYTES:
+            raise ValueError("A single unit exceeds the page byte bound")
+        page["units"].append(unit)
+        size += addition
+    pages.append(page)
     return pages
 
 

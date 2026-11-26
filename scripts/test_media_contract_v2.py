@@ -69,6 +69,17 @@ unit = {"unitId": "source-chapter-7", "displayOrdinal": "1.5", "sourceOrdinal": 
         "absoluteOrdinal": None, "title": None, "availability": "unknown", "provenance": {"source": "contract-fixture"}}
 chapters = {"schemaVersion": v2.VERSION, "recordType": "chapters", "ref": ref, "coverage": "partial", "offset": 0, "units": [unit]}
 v2.validate_record(chapters, checks)
+many = [{**unit, "unitId": f"chapter-{number}"} for number in range(501)]
+pages = v2.unit_pages(ref, "chapters", "partial", many)
+assert [len(page["units"]) for page in pages] == [500, 1]
+assert [page["offset"] for page in pages] == [0, 500]
+large = [{**unit, "unitId": f"chapter-{number}", "title": "x" * 60000} for number in range(100)]
+pages = v2.unit_pages(ref, "chapters", "partial", large)
+assert len(pages) > 1 and [item for page in pages for item in page["units"]] == large
+for page in pages:
+    v2.validate_record(page, checks)
+    assert len(v2.canonical_bytes(page)) <= v2.MAX_FILE_BYTES
+refused(lambda: v2.unit_pages(ref, "chapters", "partial", [{**unit, "title": "x" * v2.MAX_FILE_BYTES}]))
 refused(lambda: v2.validate_record({**chapters, "units": [unit, unit]}, checks))
 refused(lambda: v2.validate_record({**chapters, "ref": {"kind": "TV", "mediaKey": "tmdb-tv-42"}}, checks))
 refused(lambda: v2.validate_record({**chapters, "units": [{**unit, "unitId": "https://host/stream?token=x"}]}, checks))
