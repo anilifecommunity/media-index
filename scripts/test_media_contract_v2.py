@@ -51,6 +51,18 @@ for path in source_files:
     assert projected["titles"] == legacy["titles"]
     assert projected["images"] == legacy["images"]
     assert projected["franchise"]["coverage"] == "unresolved"
+    if legacy["ids"].get("mal") is not None:
+        secondary = next(a for a in projected["ref"]["aliases"] if a["namespace"] == "mal:anime")
+        assert secondary["verified"] is False
+        assert secondary["provenance"]["source"] == "legacy-v1-cross-reference"
+        evidenced = {**legacy, "anilist": {"id": legacy["ids"]["anilist"], "idMal": legacy["ids"]["mal"]}}
+        verified = v2.adapt_v1_media(evidenced)
+        v2.validate_record(verified, checks)
+        assert verified["ref"]["aliases"][1]["verified"] is True
+        wrong_origin = {**evidenced, "anilist": {**evidenced["anilist"], "id": legacy["ids"]["anilist"] + 1}}
+        assert v2.adapt_v1_media(wrong_origin)["ref"]["aliases"][1]["verified"] is False
+        malformed = {**evidenced, "anilist": {**evidenced["anilist"], "idMal": True}}
+        assert v2.adapt_v1_media(malformed)["ref"]["aliases"][1]["verified"] is False
     details.append(projected)
 assert details and before == {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in source_files}
 for path in (ROOT / "fixtures/v1/releases").glob("*/episodes/*/*.json"):

@@ -33,7 +33,14 @@ def target(ref: dict) -> dict:
 def adapt_v1_media(record: dict) -> dict:
     if record.get("kind") != "ANIME" or not record.get("schemaVersion", "").startswith("1."):
         raise ValueError("Only the existing v1 anime contract can be projected")
-    ref = anime_ref(record["ids"]["anilist"], record.get("format"), record["ids"].get("mal"))
+    ref = anime_ref(record["ids"]["anilist"], record.get("format"))
+    mal_id = record["ids"].get("mal")
+    if mal_id is not None:
+        raw = record.get("anilist") if isinstance(record.get("anilist"), dict) else {}
+        verified = (type(raw.get("id")) is int and raw["id"] == record["ids"]["anilist"]
+                    and type(raw.get("idMal")) is int and raw["idMal"] == mal_id)
+        ref["aliases"].append({**alias("mal:anime", mal_id, "anilist" if verified else "legacy-v1-cross-reference"),
+                               "verified": verified})
     if ref["mediaKey"] != record["mediaKey"]:
         raise ValueError("v1 canonical identity mismatch")
     relations = []
