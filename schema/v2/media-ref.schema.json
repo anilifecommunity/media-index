@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anilifecommunity/media-index/main/schema/v2/media-ref.schema.json",
+  "title": "Anilife typed media identity v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "mediaKey", "aliases"],
+  "properties": {
+    "kind": {"enum": ["ANIME", "MOVIE", "TV", "MANGA", "COMIC", "NOVEL"]},
+    "mediaKey": {"type": "string", "pattern": "^(al-[1-9][0-9]*|tmdb-movie-[1-9][0-9]*|tmdb-tv-[1-9][0-9]*|src-[0-9a-f]{64})$", "maxLength": 96},
+    "format": {"type": ["string", "null"], "maxLength": 32},
+    "aliases": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"$ref": "#/$defs/alias"}},
+    "sourceRef": {"$ref": "#/$defs/sourceRef"}
+  },
+  "allOf": [
+    {"if": {"properties": {"mediaKey": {"pattern": "^src-"}}}, "then": {"required": ["sourceRef"]},
+     "else": {"properties": {"aliases": {"contains": {"required": ["verified"], "properties": {"verified": {"const": true}}}}}}}
+  ],
+  "$defs": {
+    "target": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "mediaKey"],
+      "properties": {"kind": {"$ref": "#/properties/kind"}, "mediaKey": {"$ref": "#/properties/mediaKey"}}
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false, "required": ["source"],
+      "properties": {"source": {"type": "string", "minLength": 1, "maxLength": 128}, "capturedAt": {"type": "string", "format": "date-time"}}
+    },
+    "alias": {
+      "type": "object", "additionalProperties": false, "required": ["namespace", "id", "verified", "provenance"],
+      "properties": {
+        "namespace": {"enum": ["anilist:anime", "anilist:manga", "mal:anime", "mal:manga", "tmdb:movie", "tmdb:tv", "imdb"]},
+        "id": {"oneOf": [{"type": "integer", "minimum": 1, "maximum": 9007199254740991}, {"type": "string", "pattern": "^tt[0-9]{7,10}$"}]},
+        "verified": {"type": "boolean"}, "provenance": {"$ref": "#/$defs/provenance"}
+      },
+      "allOf": [{"if": {"properties": {"namespace": {"const": "imdb"}}}, "then": {"properties": {"id": {"type": "string"}}}, "else": {"properties": {"id": {"type": "integer"}}}}]
+    },
+    "sourceRef": {
+      "type": "object", "additionalProperties": false, "required": ["engine", "repositoryId", "providerId", "stableItemId", "provenance"],
+      "properties": {
+        "engine": {"$ref": "#/$defs/sourceIdentifier"}, "repositoryId": {"$ref": "#/$defs/sourceIdentifier"},
+        "providerId": {"$ref": "#/$defs/sourceIdentifier"}, "stableItemId": {"$ref": "#/$defs/sourceIdentifier"},
+        "provenance": {"$ref": "#/$defs/provenance"}
+      }
+    },
+    "sourceIdentifier": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?![hH][tT][tT][pP][sS]?:)[^\\s\\u0000-\\u001f?#@]+$"}
+  }
+}

@@ -29,7 +29,7 @@ _SPACE = re.compile(r"[ \t\r\f\v]+")
 def canonical_bytes(payload: Any) -> bytes:
     """Deterministic UTF-8 JSON: sorted keys, no ASCII escaping, no whitespace."""
     return json.dumps(
-        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
 
 

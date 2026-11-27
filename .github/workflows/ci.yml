@@ -6,6 +6,7 @@ on:
     paths:
       - "scripts/**"
       - "schema/**"
+      - "fixtures/**"
       - "policy/**"
       - "docs/**"
       - ".github/workflows/**"
@@ -33,10 +34,14 @@ jobs:
         run: |
           python scripts/test_konoha_build.py
           python scripts/test_recs_build.py
+          python scripts/test_franchise.py
+          python scripts/test_media_identity_v2.py
+          python scripts/test_media_contract_v2.py
 
       - name: Release contract tests
         run: |
           python scripts/test_release.py
+          python scripts/test_release_v2.py -v
           python scripts/test_health.py
           python scripts/test_compat.py
 
@@ -57,6 +62,12 @@ jobs:
             --allow-unverified-sources
           python scripts/validate_release.py --root build/ci --schemas
           python scripts/rollback_release.py --root build/ci --list
+
+      - name: Build and verify an independent v2 staging generation
+        run: |
+          python scripts/build_release_v2.py --out build/ci-v2 --limit 250 > build/v2-summary.json
+          python scripts/validate_release_v2.py --root build/ci-v2 \
+            --release "$(python -c 'import json; print(json.load(open("build/v2-summary.json"))["releaseId"])')"
 
       - name: Verify the committed consumer fixtures
         run: python scripts/validate_release.py --root fixtures/v1 --schemas
