@@ -70,6 +70,11 @@ restored from a snapshot after its remote was lost). Push a commit that touches
 
 ## Release build and rollback
 
+The independent v2 writer, guarded publication command and retained-generation rollback are
+documented in [CONTRACT-V2.md](CONTRACT-V2.md#writer-discovery-and-recovery). V2 is not yet part of
+the scheduled production refresh described here. Its contract checks build an isolated staging
+generation; they do not publish a production v2 pointer or expand source permission.
+
 The workflow builds the v1 release from the freshly emitted legacy tree and commits it with the
 data:
 

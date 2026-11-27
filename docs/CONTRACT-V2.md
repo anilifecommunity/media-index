@@ -32,4 +32,41 @@ Hard uncompressed canonical-JSON limits are 4 KiB for pointers, 256 KiB for main
 
 `adapt_v1_media` and `adapt_v1_episodes` are pure projections. They never edit the root pointer, existing immutable releases or `/data/` paths. New production source acquisition remains governed by the existing source-rights policy; a new kind in the schema does not grant collection/redistribution permission.
 
-Run `python scripts/test_media_contract_v2.py`, `test_media_identity_v2.py`, `test_release.py` and `test_compat.py`. The tests validate existing v1 fixture projections, exact ID scopes, source preservation, null/adult handling, fractional chapters, byte limits, duplicate/path rejection and immutable old inputs. The schemas/fixtures are development artifacts until an immutable contract publication is recorded.
+Run `python scripts/test_media_contract_v2.py`, `test_media_identity_v2.py`, `test_release_v2.py`, `test_release.py` and `test_compat.py`. The tests validate existing v1 fixture projections, exact ID scopes, source preservation, null/adult handling, fractional chapters, byte limits, duplicate/path rejection and immutable old inputs. The schemas/fixtures are development artifacts until an immutable contract publication is recorded.
+
+## Writer, discovery and recovery
+
+`scripts/build_release_v2.py` builds an independent, temporary v1 view from the same eligible legacy data, verifies it, and projects it into v2. Its raw AniList identity evidence is used for MAL cross-reference verification; a legacy crosswalk alone remains unverified. Additional untyped legacy series edges retain membership but force partial coverage. Neither staging nor publication rewrites the root v1 pointer or `/data/`.
+
+The exact generation layout is:
+
+```text
+v2/manifest.json
+v2/releases/rel-<16 lowercase hash digits>/manifest.json
+v2/releases/<releaseId>/buckets/<00..ff>.json
+v2/releases/<releaseId>/identity/<00..ff>.json
+v2/releases/<releaseId>/catalogue/<00..3f>/<00000..99999>.json
+v2/releases/<releaseId>/search/<00..3f>/<00000..99999>.json
+v2/releases/<releaseId>/media/<kind>/<mediaKey>.json
+v2/releases/<releaseId>/units/<kind>/<mediaKey>/<00000..01023>.json
+```
+
+All hashes use SHA256. JSON uses UTF-8 with literal Unicode, lexically sorted object keys, compact separators, and no NaN/infinity or duplicate object keys. The release `contentHash` hashes the canonical array of **all payload descriptors sorted by path**, excluding bucket/main manifests. The release ID is `rel-` plus its first 16 hexadecimal digits. Every payload is assigned to the bucket given by the first two hex digits of SHA256 of its relative UTF-8 path. Buckets and the full content hash detect omissions and substitutions as well as corrupt payloads. A generation's main manifest retains its original timestamp when identical content is rebuilt; existing generations are verified and reused without overwriting bytes.
+
+Catalogue and search use the qualified target's canonical JSON bytes, SHA256's first eight hex digits interpreted as an integer, modulo 64. Each shard has a first page even when empty. Its later pages are consecutive numeric paths, split by both the 1,000-row and 2 MiB limits. The manifest bootstraps all 64 first pages of each index; additional pages are discovered from their verified bucket inventory. Consumers may compute the next page path but must find its descriptor in that inventory before fetching it. Reaching an absent next descriptor ends that shard; a gap followed by another page is invalid.
+
+Identity always has 256 shards, including empty ones. A binding's shard is the first two hex digits of SHA256 of canonical `[namespace, id]` for external aliases, or `["source", kind, deterministicSourceKey]` for an exact source mapping. Each entry in `unresolvedAliases` uses the external alias rule. Bootstrap includes all identity descriptors; verify the relevant shard before authorizing an alias-based operation. Clients fetch shards on demand rather than loading the entire ledger at startup. The writer preserves immutable bindings from **every retained verified generation**, including when the serving pointer was rolled back. Current observations may clear quarantine only under the identity reconciliation rules. Explicit verified source bindings are accepted by the internal writer's `source_bindings` argument; they never rename a source key or progress identity. Retain the generations as identity history; deleting them is not a supported garbage-collection operation.
+
+The verifier checks all file bytes/hashes before parsing, schema and semantic bounds, exact bootstrap coverage, contiguous index/unit pages, qualified paths, unit ownership, declared complete counts, unresolved missing franchise details, relation hydration, alias evidence, and complete index/detail projections. It rejects unlisted files and filesystem links. One advisory filesystem lock serializes writers; promotion uses a flushed/fsynced temporary pointer and an atomic replacement. Build failure leaves the last pointer intact; immutable candidates may remain for inspection. The local `.v2-namespace` marker distinguishes this publisher's namespace from a v1 tree and allows recovery of its corrupt pointer. Marker/lock files are publisher bookkeeping, not snapshot payloads.
+
+Example staging build, verification, production publication and recovery (PowerShell):
+
+```powershell
+$candidate = python scripts/build_release_v2.py --out build/v2 --limit 250 | ConvertFrom-Json
+python scripts/validate_release_v2.py --root build/v2 --release $candidate.releaseId
+python scripts/build_release_v2.py --out v2 --publish
+python scripts/validate_release_v2.py --root v2
+python scripts/build_release_v2.py --out v2 --rollback rel-0123456789abcdef
+```
+
+The example rollback ID is a placeholder; use a retained verified release. Production `--publish` enforces the existing source-rights policy, unlimited input, the 72-hour freshness SLO and deep publication health. Rollback validates source permission and the entire retained generation; it intentionally does not require fresh acquisition during an outage. There is no production unverified-source override. Internal Python writer/build functions are trusted fixture/composition APIs; the guarded CLI is the production entrypoint. These commands implement local generation/promotion, not a claim that a v2 dataset is already hosted. M03 owns approved expanded collection and scheduled production delivery; contract publication can ship schemas and synthetic consumer vectors independently.

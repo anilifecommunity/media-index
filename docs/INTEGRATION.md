@@ -1,5 +1,8 @@
 # Media Index v1 integration contract
 
+For the separate cross-media v2 contract, exact identity vectors and immutable writer/verifier,
+see [CONTRACT-V2.md](CONTRACT-V2.md) and [IDENTITY-V2.md](IDENTITY-V2.md). V2 does not replace this v1 namespace.
+
 Audience: the Android and Web implementers. Pin to a **contract release ID**, not to `@main`.
 This document describes what is implemented in this repository today; it is not a promise about
 fields that are still `null` or marked blocked in `docs/SOURCE-POLICY.md`.
