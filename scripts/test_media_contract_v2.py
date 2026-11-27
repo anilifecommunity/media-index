@@ -7,9 +7,13 @@ from pathlib import Path
 
 from jsonschema.exceptions import ValidationError
 import media_contract_v2 as v2
+from media_identity_v2 import reconcile_alias_ledger
 
 ROOT = Path(__file__).resolve().parent.parent
 checks = v2.validators()
+conflicts = json.loads((ROOT / "fixtures/v2/alias-conflict-vectors.json").read_text(encoding="utf-8"))
+ledger = reconcile_alias_ledger({"schemaVersion": "2.0.0", "bindings": [conflicts["priorBinding"]]}, conflicts["refs"])
+v2.validate_record(ledger, checks)
 vectors = json.loads((ROOT / "fixtures/v2/identity-vectors.json").read_text(encoding="utf-8"))
 shared = json.loads((ROOT / "fixtures/v2/record-vectors.json").read_text(encoding="utf-8"))
 for record in shared["records"]:
@@ -26,6 +30,14 @@ def refused(call):
     except (ValueError, ValidationError):
         return
     raise AssertionError("Invalid v2 record was accepted")
+
+
+malformed = copy.deepcopy(ledger)
+malformed["unresolvedAliases"][0]["alias"]["verified"] = True
+refused(lambda: v2.validate_record(malformed, checks))
+malformed = copy.deepcopy(ledger)
+malformed["unresolvedAliases"][0]["candidates"] = malformed["unresolvedAliases"][0]["candidates"][1:]
+refused(lambda: v2.validate_record(malformed, checks))
 
 
 source_files = list((ROOT / "fixtures/v1/releases").glob("*/media/*/*.json"))

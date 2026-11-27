@@ -6,7 +6,8 @@
   "required": ["schemaVersion", "bindings"],
   "properties": {
     "schemaVersion": {"const": "2.0.0"},
-    "bindings": {"type": "array", "maxItems": 100000, "items": {"oneOf": [{"$ref": "#/$defs/externalBinding"}, {"$ref": "#/$defs/sourceBinding"}]}}
+    "bindings": {"type": "array", "maxItems": 100000, "items": {"oneOf": [{"$ref": "#/$defs/externalBinding"}, {"$ref": "#/$defs/sourceBinding"}]}},
+    "unresolvedAliases": {"type": "array", "maxItems": 100000, "items": {"$ref": "#/$defs/unresolvedAlias"}}
   },
   "$defs": {
     "target": {
@@ -20,6 +21,14 @@
     "sourceBinding": {
       "type": "object", "additionalProperties": false, "required": ["sourceRef", "verified", "target"],
       "properties": {"sourceRef": {"$ref": "media-ref.schema.json#/$defs/sourceRef"}, "verified": {"const": true}, "target": {"$ref": "#/$defs/target"}}
+    },
+    "unresolvedAlias": {
+      "type": "object", "additionalProperties": false, "required": ["alias", "reason", "candidates"],
+      "properties": {
+        "alias": {"allOf": [{"$ref": "media-ref.schema.json#/$defs/alias"}, {"properties": {"verified": {"const": false}}}]},
+        "reason": {"enum": ["ambiguous", "changed", "unverified"]},
+        "candidates": {"type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": {"$ref": "#/$defs/target"}}
+      }
     }
   }
 }

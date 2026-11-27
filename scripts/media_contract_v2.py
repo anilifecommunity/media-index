@@ -3,7 +3,7 @@
 import json
 from pathlib import Path, PurePosixPath
 
-from media_identity_v2 import KINDS, anilist_kind, append_alias_ledger, canonical_key, validate_ref
+from media_identity_v2 import KINDS, anilist_kind, canonical_key, validate_alias_ledger, validate_ref
 from release_lib import canonical_bytes, normalize_name, visibility_of
 
 VERSION = "2.0.0"
@@ -153,7 +153,7 @@ def validate_record(record: dict, loaded_validators: tuple) -> None:
     if len(canonical_bytes(record)) > limit:
         raise ValueError("Record exceeds the v2 byte bound")
     if is_ledger:
-        append_alias_ledger([], record["bindings"])
+        validate_alias_ledger(record)
         return
     if record["recordType"] == "detail":
         validate_ref(record["ref"])

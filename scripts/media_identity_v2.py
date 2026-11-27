@@ -114,15 +114,26 @@ def validate_ref(ref: dict) -> None:
         raise ValueError("AniList novel identity needs explicit format evidence")
 
 
+def _target_key(target: dict) -> bytes:
+    if (set(target) != {"kind", "mediaKey"} or target["kind"] not in KINDS
+            or not isinstance(target["mediaKey"], str)
+            or not target["mediaKey"].startswith(KEY_PREFIXES[target["kind"]])
+            or not re.fullmatch(r"(?:al-[1-9][0-9]*|tmdb-movie-[1-9][0-9]*|tmdb-tv-[1-9][0-9]*|src-[0-9a-f]{64})", target["mediaKey"])):
+        raise ValueError("Invalid alias target")
+    if not target["mediaKey"].startswith("src-"):
+        positive_id(int(target["mediaKey"].rsplit("-", 1)[1]))
+    return canonical_bytes(target)
+
+
+def _alias_key(alias: dict) -> bytes:
+    return canonical_bytes([alias["namespace"], alias["id"]])
+
+
 def append_alias_ledger(previous: list[dict], additions: list[dict]) -> list[dict]:
     ledger = {}
     for entry in previous + additions:
         target = entry["target"]
-        if (set(target) != {"kind", "mediaKey"} or target["kind"] not in KINDS
-                or not isinstance(target["mediaKey"], str)
-                or not target["mediaKey"].startswith(KEY_PREFIXES[target["kind"]])
-                or not re.fullmatch(r"(?:al-[1-9][0-9]*|tmdb-movie-[1-9][0-9]*|tmdb-tv-[1-9][0-9]*|src-[0-9a-f]{64})", target["mediaKey"])):
-            raise ValueError("Invalid alias target")
+        _target_key(target)
         if "sourceRef" in entry:
             if entry.get("verified") is not True or "alias" in entry:
                 raise ValueError("Source mappings need explicit verified evidence")
@@ -132,8 +143,86 @@ def append_alias_ledger(previous: list[dict], additions: list[dict]) -> list[dic
             validate_alias(alias, target["kind"])
             if not alias["verified"]:
                 raise ValueError("Unverified matches cannot bind an alias")
-            key = canonical_bytes([alias["namespace"], alias["id"]])
+            key = _alias_key(alias)
         if key in ledger and ledger[key]["target"] != target:
             raise ValueError("An existing identity cannot be reassigned")
         ledger.setdefault(key, entry)
     return [ledger[key] for key in sorted(ledger)]
+
+
+def validate_alias_ledger(record: dict) -> None:
+    if record.get("schemaVersion") != "2.0.0":
+        raise ValueError("Unsupported alias ledger version")
+    bindings = append_alias_ledger([], record["bindings"])
+    known = {_alias_key(entry["alias"]): entry for entry in bindings if "alias" in entry}
+    seen = set()
+    for entry in record.get("unresolvedAliases", []):
+        alias, candidates = entry["alias"], entry["candidates"]
+        if alias.get("verified") is not False or not 1 <= len(candidates) <= 32:
+            raise ValueError("Invalid unresolved alias evidence")
+        key = _alias_key(alias)
+        if key in seen:
+            raise ValueError("Duplicate unresolved alias")
+        seen.add(key)
+        targets = [_target_key(target) for target in candidates]
+        if len(set(targets)) != len(targets):
+            raise ValueError("Duplicate unresolved target")
+        for target in candidates:
+            validate_alias(alias, target["kind"])
+        if key in known and known[key]["target"] not in candidates:
+            raise ValueError("Unresolved evidence must retain the historical target")
+        reason = entry["reason"]
+        if reason == "ambiguous" and len(targets) < 2:
+            raise ValueError("Ambiguity needs distinct candidates")
+        if reason == "changed" and (key not in known or len(targets) < 2 or known[key]["target"] not in candidates):
+            raise ValueError("A changed alias must retain its historical target")
+        if reason not in {"ambiguous", "changed", "unverified"}:
+            raise ValueError("Unknown alias resolution reason")
+
+
+def reconcile_alias_ledger(previous: dict, refs: list[dict]) -> dict:
+    """Retain historical bindings; quarantine current ambiguous, changed or unverified aliases."""
+    validate_alias_ledger(previous)
+    bindings = previous["bindings"]
+    known = {_alias_key(entry["alias"]): entry for entry in bindings if "alias" in entry}
+    pending = {_alias_key(entry["alias"]): entry for entry in previous.get("unresolvedAliases", [])}
+    observations = {}
+    for ref in refs:
+        validate_ref(ref)
+        target = {"kind": ref["kind"], "mediaKey": ref["mediaKey"]}
+        for alias in ref["aliases"]:
+            observations.setdefault(_alias_key(alias), []).append({"alias": alias, "target": target})
+    additions = []
+    for key, entries in observations.items():
+        entries = sorted(entries, key=canonical_bytes)
+        candidates = {_target_key(entry["target"]): entry["target"] for entry in entries}
+        observed_count = len(candidates)
+        historical = known.get(key)
+        changed = historical is not None and any(entry["target"] != historical["target"] for entry in entries)
+        if historical:
+            candidates[_target_key(historical["target"])] = historical["target"]
+        if observed_count > 1 or changed or not all(entry["alias"]["verified"] for entry in entries):
+            pending[key] = {
+                "alias": {**entries[0]["alias"], "verified": False},
+                "reason": "ambiguous" if observed_count > 1 else "changed" if changed else "unverified",
+                "candidates": [candidates[k] for k in sorted(candidates)],
+            }
+        else:
+            pending.pop(key, None)
+            additions.append(entries[0])
+    result = {"schemaVersion": "2.0.0", "bindings": append_alias_ledger(bindings, additions),
+              "unresolvedAliases": [pending[key] for key in sorted(pending)]}
+    validate_alias_ledger(result)
+    return result
+
+
+def apply_alias_ledger(refs: list[dict], ledger: dict) -> list[dict]:
+    """Downgrade contested aliases without changing a media key or any local progress identity."""
+    validate_alias_ledger(ledger)
+    blocked = {_alias_key(entry["alias"]) for entry in ledger.get("unresolvedAliases", [])}
+    results = []
+    for ref in refs:
+        result = {**ref, "aliases": [{**alias, "verified": False} if _alias_key(alias) in blocked else alias for alias in ref["aliases"]]}
+        validate_ref(result)
+        results.append(result)
+    return results
